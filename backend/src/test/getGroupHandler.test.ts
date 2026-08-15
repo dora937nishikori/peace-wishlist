@@ -8,14 +8,14 @@ import {
   it,
 } from "vitest";
 
-import { hashAccessToken } from "./accessToken";
-import type { Group } from "./createGroup";
+import { hashAccessToken } from "../accessToken";
+import type { Group } from "../createGroup";
 import {
   createGetGroupHandler,
-} from "./getGroupHandler";
+} from "../getGroupHandler";
 import type {
   GroupRepository,
-} from "./groupRepository";
+} from "../groupRepository";
 
 const validAccessToken = "valid-token";
 

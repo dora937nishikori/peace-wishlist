@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { createGroup } from "./createGroup";
+import { createGroup } from "../createGroup";
 
 describe("createGroup", () => {
   it("有効な入力からグループを作成できる", () => {

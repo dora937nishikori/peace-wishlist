@@ -8,13 +8,13 @@ import {
   it,
 } from "vitest";
 
-import type { Group } from "./createGroup";
+import type { Group } from "../createGroup";
 import {
   createGroupHandler,
-} from "./createGroupHandler";
+} from "../createGroupHandler";
 import type {
   GroupRepository,
-} from "./groupRepository";
+} from "../groupRepository";
 
 class FakeGroupRepository
   implements GroupRepository

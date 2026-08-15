@@ -42,6 +42,36 @@ export class InfraStack extends cdk.Stack {
       },
     );
 
+    const wishItemsTable = new dynamodb.Table(
+      this,
+      "WishItemsTable",
+      {
+        partitionKey: {
+          name: "groupId",
+          type: dynamodb.AttributeType.STRING,
+        },
+        sortKey: {
+          name: "itemId",
+          type: dynamodb.AttributeType.STRING,
+        },
+        billingMode:
+          dynamodb.BillingMode.PAY_PER_REQUEST,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      },
+    );
+
+    wishItemsTable.addGlobalSecondaryIndex({
+      indexName: "ItemsByCreatedAt",
+      partitionKey: {
+        name: "groupId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "createdAtItemId",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
     /*
      * グループ作成Lambda
      */
@@ -81,11 +111,202 @@ export class InfraStack extends cdk.Stack {
         },
       );
 
+  const getGroupFunction =
+    new lambdaNodejs.NodejsFunction(
+      this,
+      "GetGroupFunction",
+      {
+        entry: path.join(
+          __dirname,
+          "../../backend/src/getGroupHandler.ts",
+        ),
+        handler: "handler",
+        runtime: lambda.Runtime.NODEJS_24_X,
+        depsLockFilePath: path.join(
+          __dirname,
+          "../../backend/package-lock.json",
+        ),
+        environment: {
+          GROUPS_TABLE_NAME:
+            groupsTable.tableName,
+        },
+        bundling: {
+          target: "node24",
+          sourceMap: true,
+          minify: false,
+        },
+      },
+    );
+
+    const createWishItemFunction =
+      new lambdaNodejs.NodejsFunction(
+        this,
+        "CreateWishItemFunction",
+        {
+          entry: path.join(
+            __dirname,
+            "../../backend/src/createWishItemHandler.ts",
+          ),
+
+          handler: "handler",
+
+          runtime: lambda.Runtime.NODEJS_24_X,
+
+          depsLockFilePath: path.join(
+            __dirname,
+            "../../backend/package-lock.json",
+          ),
+
+          environment: {
+            GROUPS_TABLE_NAME:
+              groupsTable.tableName,
+
+            WISH_ITEMS_TABLE_NAME:
+              wishItemsTable.tableName,
+          },
+
+          bundling: {
+            target: "node24",
+            sourceMap: true,
+            minify: false,
+          },
+        },
+      );
+
+      const getWishItemsFunction =
+        new lambdaNodejs.NodejsFunction(
+          this,
+          "GetWishItemsFunction",
+          {
+            entry: path.join(
+              __dirname,
+              "../../backend/src/getWishItemsHandler.ts",
+            ),
+
+            handler: "handler",
+
+            runtime: lambda.Runtime.NODEJS_24_X,
+
+            depsLockFilePath: path.join(
+              __dirname,
+              "../../backend/package-lock.json",
+            ),
+
+            environment: {
+              GROUPS_TABLE_NAME:
+                groupsTable.tableName,
+
+              WISH_ITEMS_TABLE_NAME:
+                wishItemsTable.tableName,
+            },
+
+            bundling: {
+              target: "node24",
+              sourceMap: true,
+              minify: false,
+            },
+          },
+        );
+
+      const updateWishItemFunction =
+        new lambdaNodejs.NodejsFunction(
+          this,
+          "UpdateWishItemFunction",
+          {
+            entry: path.join(
+              __dirname,
+              "../../backend/src/updateWishItemHandler.ts",
+            ),
+            handler: "handler",
+            runtime: lambda.Runtime.NODEJS_24_X,
+            depsLockFilePath: path.join(
+              __dirname,
+              "../../backend/package-lock.json",
+            ),
+            environment: {
+              GROUPS_TABLE_NAME:
+                groupsTable.tableName,
+              WISH_ITEMS_TABLE_NAME:
+                wishItemsTable.tableName,
+            },
+            bundling: {
+              target: "node24",
+              sourceMap: true,
+              minify: false,
+            },
+          },
+        );
+
+      const deleteWishItemFunction =
+        new lambdaNodejs.NodejsFunction(
+          this,
+          "DeleteWishItemFunction",
+          {
+            entry: path.join(
+              __dirname,
+              "../../backend/src/deleteWishItemHandler.ts",
+            ),
+            handler: "handler",
+            runtime: lambda.Runtime.NODEJS_24_X,
+            depsLockFilePath: path.join(
+              __dirname,
+              "../../backend/package-lock.json",
+            ),
+            environment: {
+              GROUPS_TABLE_NAME:
+                groupsTable.tableName,
+              WISH_ITEMS_TABLE_NAME:
+                wishItemsTable.tableName,
+            },
+            bundling: {
+              target: "node24",
+              sourceMap: true,
+              minify: false,
+            },
+          },
+        );
+
     /*
      * LambdaへDynamoDBの書き込み権限を付与する。
      */
     groupsTable.grantWriteData(
       createGroupFunction,
+    );
+
+    groupsTable.grantReadData(
+      getGroupFunction,
+    );
+
+    groupsTable.grantReadData(
+      createWishItemFunction,
+    );
+
+    wishItemsTable.grantWriteData(
+      createWishItemFunction,
+    );
+
+    groupsTable.grantReadData(
+      getWishItemsFunction,
+    );
+
+    wishItemsTable.grantReadData(
+      getWishItemsFunction,
+    );
+
+    groupsTable.grantReadData(
+      updateWishItemFunction,
+    );
+
+    wishItemsTable.grantReadWriteData(
+      updateWishItemFunction,
+    );
+
+    groupsTable.grantReadData(
+      deleteWishItemFunction,
+    );
+
+    wishItemsTable.grantReadWriteData(
+      deleteWishItemFunction,
     );
 
     /*
@@ -102,7 +323,10 @@ export class InfraStack extends cdk.Stack {
             "http://localhost:5173",
           ],
           allowMethods: [
+            apigatewayv2.CorsHttpMethod.GET,
             apigatewayv2.CorsHttpMethod.POST,
+            apigatewayv2.CorsHttpMethod.PATCH,
+            apigatewayv2.CorsHttpMethod.DELETE,
           ],
           allowHeaders: [
             "content-type",
@@ -118,12 +342,86 @@ export class InfraStack extends cdk.Stack {
         createGroupFunction,
       );
 
+    const getGroupIntegration =
+      new HttpLambdaIntegration(
+        "GetGroupIntegration",
+        getGroupFunction,
+      );
+
+    const createWishItemIntegration =
+      new HttpLambdaIntegration(
+        "CreateWishItemIntegration",
+        createWishItemFunction,
+      );
+
+    const getWishItemsIntegration =
+      new HttpLambdaIntegration(
+        "GetWishItemsIntegration",
+        getWishItemsFunction,
+      );
+
+    const updateWishItemIntegration =
+      new HttpLambdaIntegration(
+        "UpdateWishItemIntegration",
+        updateWishItemFunction,
+      );
+
+    const deleteWishItemIntegration =
+      new HttpLambdaIntegration(
+        "DeleteWishItemIntegration",
+        deleteWishItemFunction,
+      );
+
     httpApi.addRoutes({
       path: "/groups",
       methods: [
         apigatewayv2.HttpMethod.POST,
       ],
       integration: createGroupIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/groups/{groupId}",
+      methods: [
+        apigatewayv2.HttpMethod.GET,
+      ],
+      integration: getGroupIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/groups/{groupId}/items",
+      methods: [
+        apigatewayv2.HttpMethod.POST,
+      ],
+      integration:
+        createWishItemIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/groups/{groupId}/items",
+      methods: [
+        apigatewayv2.HttpMethod.GET,
+      ],
+      integration:
+        getWishItemsIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/groups/{groupId}/items/{itemId}",
+      methods: [
+        apigatewayv2.HttpMethod.PATCH,
+      ],
+      integration:
+        updateWishItemIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/groups/{groupId}/items/{itemId}",
+      methods: [
+        apigatewayv2.HttpMethod.DELETE,
+      ],
+      integration:
+        deleteWishItemIntegration,
     });
 
     /*
@@ -138,6 +436,14 @@ export class InfraStack extends cdk.Stack {
       "GroupsTableName",
       {
         value: groupsTable.tableName,
+      },
+    );
+
+    new cdk.CfnOutput(
+      this,
+      "WishItemsTableName",
+      {
+        value: wishItemsTable.tableName,
       },
     );
   }
