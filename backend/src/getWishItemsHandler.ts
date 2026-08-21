@@ -8,6 +8,9 @@ import { DynamoDbGroupRepository } from "./dynamoDbGroupRepository";
 import { DynamoDbWishItemRepository } from "./dynamoDbWishItemRepository";
 import type { GroupRepository } from "./groupRepository";
 import type { WishItemRepository } from "./wishItemRepository";
+import {
+  toWishItemResponse,
+} from "./wishItemResponse.js";
 
 type Handler = (
   event: APIGatewayProxyEventV2,
@@ -113,8 +116,13 @@ export function createGetWishItemsHandler(
           groupId,
         );
 
+      const responseItems =
+        items.map(
+          toWishItemResponse,
+        );
+
       return createJsonResponse(200, {
-        items,
+        items: responseItems,
       });
     } catch (error) {
       console.error(

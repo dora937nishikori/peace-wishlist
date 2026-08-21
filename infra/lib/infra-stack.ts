@@ -1,6 +1,14 @@
 import * as path from "node:path";
-
 import * as cdk from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
+import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import {
   aws_apigatewayv2 as apigatewayv2,
   aws_dynamodb as dynamodb,
@@ -17,6 +25,31 @@ export class InfraStack extends cdk.Stack {
     props?: cdk.StackProps,
   ) {
     super(scope, id, props);
+
+    const alarmEmail =
+      process.env.ALARM_EMAIL;
+
+    if (!alarmEmail) {
+      throw new Error(
+        "ALARM_EMAIL が設定されていません",
+      );
+    }
+
+    const alarmTopic =
+      new sns.Topic(
+        this,
+        "AlarmTopic",
+        {
+          displayName:
+            "Peace Wishlist Alarm",
+        },
+      );
+
+    alarmTopic.addSubscription(
+      new subscriptions.EmailSubscription(
+        alarmEmail,
+      ),
+    );
 
     /*
      * グループ情報を保存するDynamoDBテーブル
@@ -111,32 +144,32 @@ export class InfraStack extends cdk.Stack {
         },
       );
 
-  const getGroupFunction =
-    new lambdaNodejs.NodejsFunction(
-      this,
-      "GetGroupFunction",
-      {
-        entry: path.join(
-          __dirname,
-          "../../backend/src/getGroupHandler.ts",
-        ),
-        handler: "handler",
-        runtime: lambda.Runtime.NODEJS_24_X,
-        depsLockFilePath: path.join(
-          __dirname,
-          "../../backend/package-lock.json",
-        ),
-        environment: {
-          GROUPS_TABLE_NAME:
-            groupsTable.tableName,
+    const getGroupFunction =
+      new lambdaNodejs.NodejsFunction(
+        this,
+        "GetGroupFunction",
+        {
+          entry: path.join(
+            __dirname,
+            "../../backend/src/getGroupHandler.ts",
+          ),
+          handler: "handler",
+          runtime: lambda.Runtime.NODEJS_24_X,
+          depsLockFilePath: path.join(
+            __dirname,
+            "../../backend/package-lock.json",
+          ),
+          environment: {
+            GROUPS_TABLE_NAME:
+              groupsTable.tableName,
+          },
+          bundling: {
+            target: "node24",
+            sourceMap: true,
+            minify: false,
+          },
         },
-        bundling: {
-          target: "node24",
-          sourceMap: true,
-          minify: false,
-        },
-      },
-    );
+      );
 
     const createWishItemFunction =
       new lambdaNodejs.NodejsFunction(
@@ -173,98 +206,164 @@ export class InfraStack extends cdk.Stack {
         },
       );
 
-      const getWishItemsFunction =
-        new lambdaNodejs.NodejsFunction(
+    const getWishItemsFunction =
+      new lambdaNodejs.NodejsFunction(
+        this,
+        "GetWishItemsFunction",
+        {
+          entry: path.join(
+            __dirname,
+            "../../backend/src/getWishItemsHandler.ts",
+          ),
+
+          handler: "handler",
+
+          runtime: lambda.Runtime.NODEJS_24_X,
+
+          depsLockFilePath: path.join(
+            __dirname,
+            "../../backend/package-lock.json",
+          ),
+
+          environment: {
+            GROUPS_TABLE_NAME:
+              groupsTable.tableName,
+
+            WISH_ITEMS_TABLE_NAME:
+              wishItemsTable.tableName,
+          },
+
+          bundling: {
+            target: "node24",
+            sourceMap: true,
+            minify: false,
+          },
+        },
+      );
+
+    const updateWishItemFunction =
+      new lambdaNodejs.NodejsFunction(
+        this,
+        "UpdateWishItemFunction",
+        {
+          entry: path.join(
+            __dirname,
+            "../../backend/src/updateWishItemHandler.ts",
+          ),
+          handler: "handler",
+          runtime: lambda.Runtime.NODEJS_24_X,
+          depsLockFilePath: path.join(
+            __dirname,
+            "../../backend/package-lock.json",
+          ),
+          environment: {
+            GROUPS_TABLE_NAME:
+              groupsTable.tableName,
+            WISH_ITEMS_TABLE_NAME:
+              wishItemsTable.tableName,
+          },
+          bundling: {
+            target: "node24",
+            sourceMap: true,
+            minify: false,
+          },
+        },
+      );
+
+    const deleteWishItemFunction =
+      new lambdaNodejs.NodejsFunction(
+        this,
+        "DeleteWishItemFunction",
+        {
+          entry: path.join(
+            __dirname,
+            "../../backend/src/deleteWishItemHandler.ts",
+          ),
+          handler: "handler",
+          runtime: lambda.Runtime.NODEJS_24_X,
+          depsLockFilePath: path.join(
+            __dirname,
+            "../../backend/package-lock.json",
+          ),
+          environment: {
+            GROUPS_TABLE_NAME:
+              groupsTable.tableName,
+            WISH_ITEMS_TABLE_NAME:
+              wishItemsTable.tableName,
+          },
+          bundling: {
+            target: "node24",
+            sourceMap: true,
+            minify: false,
+          },
+        },
+      );
+
+    const lambdaFunctions = [
+      createGroupFunction,
+      getGroupFunction,
+      createWishItemFunction,
+      getWishItemsFunction,
+      updateWishItemFunction,
+      deleteWishItemFunction,
+    ];
+
+    lambdaFunctions.forEach(
+      (lambdaFunction, index) => {
+        new logs.LogRetention(
           this,
-          "GetWishItemsFunction",
+          `LambdaLogRetention${index}`,
           {
-            entry: path.join(
-              __dirname,
-              "../../backend/src/getWishItemsHandler.ts",
-            ),
+            logGroupName:
+              `/aws/lambda/${lambdaFunction.functionName}`,
 
-            handler: "handler",
+            retention:
+              logs.RetentionDays.ONE_MONTH,
 
-            runtime: lambda.Runtime.NODEJS_24_X,
-
-            depsLockFilePath: path.join(
-              __dirname,
-              "../../backend/package-lock.json",
-            ),
-
-            environment: {
-              GROUPS_TABLE_NAME:
-                groupsTable.tableName,
-
-              WISH_ITEMS_TABLE_NAME:
-                wishItemsTable.tableName,
-            },
-
-            bundling: {
-              target: "node24",
-              sourceMap: true,
-              minify: false,
-            },
+            removalPolicy:
+              cdk.RemovalPolicy.DESTROY,
           },
         );
+      },
+    );
 
-      const updateWishItemFunction =
-        new lambdaNodejs.NodejsFunction(
-          this,
-          "UpdateWishItemFunction",
-          {
-            entry: path.join(
-              __dirname,
-              "../../backend/src/updateWishItemHandler.ts",
-            ),
-            handler: "handler",
-            runtime: lambda.Runtime.NODEJS_24_X,
-            depsLockFilePath: path.join(
-              __dirname,
-              "../../backend/package-lock.json",
-            ),
-            environment: {
-              GROUPS_TABLE_NAME:
-                groupsTable.tableName,
-              WISH_ITEMS_TABLE_NAME:
-                wishItemsTable.tableName,
-            },
-            bundling: {
-              target: "node24",
-              sourceMap: true,
-              minify: false,
-            },
-          },
-        );
+    lambdaFunctions.forEach(
+      (lambdaFunction, index) => {
+        const lambdaErrorAlarm =
+          new cloudwatch.Alarm(
+            this,
+            `LambdaErrorAlarm${index}`,
+            {
+              metric:
+                lambdaFunction.metricErrors({
+                  period:
+                    cdk.Duration.minutes(5),
+                  statistic: "Sum",
+                }),
 
-      const deleteWishItemFunction =
-        new lambdaNodejs.NodejsFunction(
-          this,
-          "DeleteWishItemFunction",
-          {
-            entry: path.join(
-              __dirname,
-              "../../backend/src/deleteWishItemHandler.ts",
-            ),
-            handler: "handler",
-            runtime: lambda.Runtime.NODEJS_24_X,
-            depsLockFilePath: path.join(
-              __dirname,
-              "../../backend/package-lock.json",
-            ),
-            environment: {
-              GROUPS_TABLE_NAME:
-                groupsTable.tableName,
-              WISH_ITEMS_TABLE_NAME:
-                wishItemsTable.tableName,
+              threshold: 1,
+              evaluationPeriods: 1,
+
+              comparisonOperator:
+                cloudwatch.ComparisonOperator
+                  .GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+
+              treatMissingData:
+                cloudwatch.TreatMissingData
+                  .NOT_BREACHING,
+
+              alarmDescription:
+                `${lambdaFunction.functionName} でLambdaエラーが発生`,
             },
-            bundling: {
-              target: "node24",
-              sourceMap: true,
-              minify: false,
-            },
-          },
+          );
+
+        lambdaErrorAlarm.addAlarmAction(
+          new cloudwatchActions.SnsAction(
+            alarmTopic,
+          ),
         );
+      },
+    );
 
     /*
      * LambdaへDynamoDBの書き込み権限を付与する。
@@ -309,6 +408,79 @@ export class InfraStack extends cdk.Stack {
       deleteWishItemFunction,
     );
 
+    const frontendBucket =
+      new s3.Bucket(
+        this,
+        "FrontendBucket",
+        {
+          blockPublicAccess:
+            s3.BlockPublicAccess.BLOCK_ALL,
+
+          encryption:
+            s3.BucketEncryption.S3_MANAGED,
+
+          enforceSSL: true,
+
+          removalPolicy:
+            cdk.RemovalPolicy.DESTROY,
+
+          autoDeleteObjects: true,
+        },
+      );
+
+    const frontendDistribution =
+      new cloudfront.Distribution(
+        this,
+        "FrontendDistribution",
+        {
+          defaultRootObject:
+            "index.html",
+
+          defaultBehavior: {
+            origin:
+              origins.S3BucketOrigin
+                .withOriginAccessControl(
+                  frontendBucket,
+                ),
+
+            viewerProtocolPolicy:
+              cloudfront
+                .ViewerProtocolPolicy
+                .REDIRECT_TO_HTTPS,
+          },
+
+          errorResponses: [
+            {
+              httpStatus: 403,
+
+              responseHttpStatus: 200,
+
+              responsePagePath:
+                "/index.html",
+
+              ttl:
+                cdk.Duration.seconds(
+                  0,
+                ),
+            },
+
+            {
+              httpStatus: 404,
+
+              responseHttpStatus: 200,
+
+              responsePagePath:
+                "/index.html",
+
+              ttl:
+                cdk.Duration.seconds(
+                  0,
+                ),
+            },
+          ],
+        },
+      );
+
     /*
      * API Gateway HTTP API
      */
@@ -321,6 +493,8 @@ export class InfraStack extends cdk.Stack {
         corsPreflight: {
           allowOrigins: [
             "http://localhost:5173",
+
+            `https://${frontendDistribution.distributionDomainName}`,
           ],
           allowMethods: [
             apigatewayv2.CorsHttpMethod.GET,
@@ -334,6 +508,40 @@ export class InfraStack extends cdk.Stack {
           ],
         },
       },
+    );
+
+    const apiServerErrorAlarm =
+      new cloudwatch.Alarm(
+        this,
+        "ApiServerErrorAlarm",
+        {
+          metric:
+            httpApi.metricServerError({
+              period:
+                cdk.Duration.minutes(5),
+              statistic: "Sum",
+            }),
+
+          threshold: 1,
+          evaluationPeriods: 1,
+
+          comparisonOperator:
+            cloudwatch.ComparisonOperator
+              .GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+
+          treatMissingData:
+            cloudwatch.TreatMissingData
+              .NOT_BREACHING,
+
+          alarmDescription:
+            "API Gatewayで5分間に1件以上の5XXエラーが発生",
+        },
+      );
+
+    apiServerErrorAlarm.addAlarmAction(
+      new cloudwatchActions.SnsAction(
+        alarmTopic,
+      ),
     );
 
     const createGroupIntegration =
@@ -444,6 +652,40 @@ export class InfraStack extends cdk.Stack {
       "WishItemsTableName",
       {
         value: wishItemsTable.tableName,
+      },
+    );
+
+    new cdk.CfnOutput(
+      this,
+      "FrontendUrl",
+      {
+        value:
+          `https://${frontendDistribution.distributionDomainName}`,
+      },
+    );
+
+    new s3deploy.BucketDeployment(
+      this,
+      "DeployFrontend",
+      {
+        sources: [
+          s3deploy.Source.asset(
+            path.join(
+              __dirname,
+              "../../frontend/dist",
+            ),
+          ),
+        ],
+
+        destinationBucket:
+          frontendBucket,
+
+        distribution:
+          frontendDistribution,
+
+        distributionPaths: [
+          "/*",
+        ],
       },
     );
   }

@@ -27,6 +27,10 @@ import type {
   WishItemRepository,
 } from "./wishItemRepository";
 
+import {
+  toWishItemResponse,
+} from "./wishItemResponse.js";
+
 type Handler = (
   event: APIGatewayProxyEventV2,
 ) => Promise<APIGatewayProxyStructuredResultV2>;
@@ -283,7 +287,7 @@ export function createUpdateWishItemHandler(
 
     return createJsonResponse(
       200,
-      updatedItem,
+      toWishItemResponse(updatedItem),
     );
   };
 }

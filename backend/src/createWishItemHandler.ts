@@ -16,6 +16,9 @@ import type { GroupRepository } from
   "./groupRepository";
 import type { WishItemRepository } from
   "./wishItemRepository";
+import {
+  toWishItemResponse,
+} from "./wishItemResponse.js";
 
 type Handler = (
   event: APIGatewayProxyEventV2,
@@ -203,7 +206,7 @@ export function createWishItemHandler(
       });
     }
 
-    return createJsonResponse(201, item);
+    return createJsonResponse(201, toWishItemResponse(item));
   };
 }
 
