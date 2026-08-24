@@ -139,7 +139,7 @@ function CreateGroupPage() {
                   event.target.value,
                 )
               }
-              placeholder="例：夏休みにやりたいこと"
+              placeholder="例：人生で実装したいこと"
               maxLength={50}
             />
           </label>
@@ -156,7 +156,7 @@ function CreateGroupPage() {
                   event.target.value,
                 )
               }
-              placeholder="例：こり"
+              placeholder="例：エイダ"
               maxLength={30}
             />
           </label>
