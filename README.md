@@ -1,32 +1,46 @@
 # Peace Wishlist
 
-友人・家族・カップルなどの少人数グループで、「行きたい場所」「食べたいもの」「一緒にやりたいこと」を共有するWebアプリです。
+友人・家族・恋人などの少人数グループで、「行きたい場所」「食べたいもの」「一緒にやりたいこと」を忘れずに共有・管理するWebアプリです。
 
-アカウント登録やアプリのインストールは不要です。グループを作成して共有URLを送るだけで利用できます。
+アカウント登録やアプリのインストールは不要です。グループを作成し、共有URLを送るだけで利用できます。
 
 > [!NOTE]
-> 主要機能とAWS環境は実装済みです。現在はUI/UXとデザインの設計・改善を進めています。
+> 主要機能、AWS環境、CI/CDは実装済みです。現在はUI/UXとデザインを改善しており、完成後に友人へ使ってもらい、フィードバックを基に改善する予定です。
 
 **公開URL:** https://d332kyk3k7fo1q.cloudfront.net/
 
 <!-- UI/UXの設計後、アプリのスクリーンショットまたは短いGIFを追加する -->
 
-## 背景・解決したい課題
+## 解決したい課題
 
-友人と話している中で、「会話に出た行きたい場所や一緒にやりたいことを、後から見返せるアプリがあったらよい」という話になったことが開発のきっかけです。
+友人や家族との会話やLINEでは、「今度行きたい場所」「一緒に食べたいもの」「作ってみたいもの」といった話題がたびたび出ます。しかし、チャット上の情報は時間とともに流れ、一人のメモでは共有や更新も面倒なため、実行する前に忘れてしまうことがありました。
 
-LINEや日常会話で出た予定は、その場では盛り上がっても会話に流れて忘れてしまうことがあります。そこで、思いついた内容をすぐに登録し、少人数のグループで共有できるアプリを作成しました。
+そこで、思いついた内容を一つのリストへ残し、少人数のメンバーで共同管理できるアプリを作成しました。
 
-利用開始時の手間を減らすことを優先し、ユーザー登録やログインを必須にせず、共有URLを知っているメンバーが参加できる方式にしています。
+## 解決方法
+
+- 会話で出た「今度やりたいこと」をグループごとのリストへ集約する
+- ユーザー登録やログインを不要にし、思いついたときにすぐ登録できるようにする
+- 共有URLを送るだけで、同じグループのメンバーが追加・編集・削除できるようにする
+
+利用開始までの手間を減らすことを優先する一方、共有URLを知る利用者は同じ権限を持ちます。そのため、現時点では友人・家族など、少人数の信頼されたメンバーでの利用を前提としています。
+
+## 使い方
+
+1. グループ名と表示名を入力してグループを作成する
+2. 発行された共有URLを一緒に使うメンバーへ送る
+3. やりたいことを追加し、必要に応じて編集・削除する
+
+表示名はブラウザへ保存され、次回以降の入力に利用されます。
 
 ## 主な機能
 
 - グループの作成と共有URLの発行
 - 共有URLからのグループ参加
-- 表示名のブラウザ保存
 - やりたいことの一覧表示・追加・編集・削除
-- 登録時・更新時に入力された表示名の表示
+- 登録者と最終更新者の表示
 - 作成日時の新しい順での一覧表示
+- 表示名のブラウザ保存
 
 ## アーキテクチャ
 
@@ -50,134 +64,82 @@ flowchart LR
     Lambda --> Items
 ```
 
-フロントエンドの静的ファイルはS3へ配置し、CloudFront経由で配信しています。S3バケットのPublic Accessは無効化し、CloudFrontからS3へのアクセスにはOrigin Access Controlを使用しています。
-
-APIはAPI Gateway HTTP APIとLambdaで構成し、データはDynamoDBへ保存しています。インフラストラクチャはAWS CDKで定義しています。
+Frontendの静的ファイルはS3へ配置し、CloudFront経由で配信しています。APIはAPI Gateway HTTP APIとLambdaで構成し、データはDynamoDBへ保存しています。インフラストラクチャはAWS CDKで定義しています。
 
 ## 技術スタック
 
 | 分類 | 技術 |
 | --- | --- |
 | Frontend | React, TypeScript, Vite, React Router |
-| Backend | TypeScript, Node.js, AWS Lambda, API Gateway HTTP API |
+| Backend | TypeScript, Node.js 24, AWS Lambda, API Gateway HTTP API, AWS SDK for JavaScript v3 |
 | Database | Amazon DynamoDB |
-| Infrastructure / Hosting | AWS CDK, Amazon S3, Amazon CloudFront |
+| Infrastructure / Hosting | AWS CDK, AWS CloudFormation, Amazon S3, Amazon CloudFront |
+| Build / Test / Lint | esbuild, Vitest, oxlint |
+| CI/CD / Authentication | GitHub Actions, AWS IAM OIDC |
 | Monitoring / Cost | CloudWatch Logs, CloudWatch Alarms, Amazon SNS, AWS Budgets |
-| Test / CI | Vitest, GitHub Actions, esbuild |
 
-## 主な設計判断
+## Backend設計の要点
 
-### アカウント登録なしで共有できるアクセス方式
+### ログイン不要の共有方式
 
-利用開始時の手間を減らすため、ログイン機能を設けず、グループごとに共有URLを発行しています。
+グループ作成時にランダムなアクセストークンを発行し、共有URLを知っているメンバーだけがグループへアクセスできる方式にしています。DynamoDBにはトークンそのものではなくSHA-256のハッシュ値を保存し、API呼び出し時はBearer Tokenとして検証します。
 
-グループ作成時に32バイトのランダムなアクセストークンを生成し、DynamoDBにはトークンそのものではなく、SHA-256でハッシュ化した値だけを保存します。APIアクセス時は、ブラウザから次の形式でトークンを送信します。
+アクセストークンはURLのクエリパラメータではなくフラグメントへ含め、ページ取得時にCloudFrontなどへ送信されないようにしています。
 
-```http
-Authorization: Bearer <accessToken>
-```
+### 利用規模に合わせたサーバーレス構成
 
-Lambda側では受信したトークンを同様にハッシュ化し、DynamoDB上のハッシュ値と比較してアクセス可否を判定しています。
+当初は友人など少人数での利用を想定しており、アクセスのない時間にもサーバーを常時稼働させる必要はありません。そこで、運用負荷と初期コストを抑えるため、API Gateway、Lambda、DynamoDBによるサーバーレス構成を選択しました。DynamoDBはオンデマンドキャパシティーモードを使用しています。
 
-### アクセストークンをURLフラグメントで保持
+### アクセスパターンから決めたデータ設計
 
-当初はアクセストークンをクエリパラメータに含めていました。
+MVPで必要な取得・更新方法を先に整理し、グループとやりたいことを別テーブルで管理しています。やりたいことは`groupId`単位で取得し、GSIを使って作成日時の新しい順に並べます。複雑な検索やリレーションが主要要件になった場合は、RDBを含めて再検討します。
 
-```text
-/groups/{groupId}?token={accessToken}
-```
+API、認可、DynamoDB、責務分離の詳細は[Backend設計](docs/backend-design.md)に記載しています。
 
-クエリパラメータはページ取得時のHTTPリクエストに含まれるため、CloudFrontなど、アクセストークンを必要としないコンポーネントにも送信されます。そのため、共有URLを次の形式へ変更しました。
+## 品質と運用
 
-```text
-/groups/{groupId}#token={accessToken}
-```
+- BackendのドメインロジックとHandlerをVitestで自動テスト
+- AWSリソースをCDKでコード化
+- pull requestと`main`へのpush時に、テスト・型チェック・build・CDK synthを実行
+- `main`のCI成功後、GitHub ActionsからAWSへ自動デプロイ
+- GitHub ActionsからAWSへの認証にはOIDCを使用し、固定アクセスキーを保存しない
+- Lambdaの実行エラーとAPI Gatewayの5XXをCloudWatch Alarmで監視し、SNSからメール通知
+- AWS Budgetsで月額利用料金を監視
 
-URLフラグメントはページ取得時にサーバーへ送信されません。React側でフラグメントからトークンを取得し、APIを呼び出すときだけ`Authorization`ヘッダーへ設定しています。
+CI/CD、OIDC、監視、初回セットアップの詳細は[デプロイと運用](docs/deployment.md)に記載しています。
 
-### アクセスパターンに合わせたDynamoDB設計
+## 現在の状態
 
-MVPで必要な主なアクセスパターンは次の3つです。
+- グループ作成と共有、項目の追加・編集・削除は実装済み
+- AWS上の公開環境とCI/CDは構築済み
+- UI/UXとビジュアルデザインは改善中
+- 実利用によるユーザーテストは未実施。デザイン完成後に友人へ使ってもらう予定
 
-- `groupId`によるグループ取得
-- `groupId`によるやりたいこと一覧の取得
-- `groupId + itemId`による更新・削除
+## 現在の前提・制約
 
-JOINや複雑な検索を必要とせず、Lambdaからの接続管理も不要であるため、DynamoDBを採用しました。また、オンデマンドキャパシティーモードを使用し、アクセスが少ない期間にも固定のキャパシティーを持たない構成にしています。
+- 共有URLを知る少人数の信頼されたメンバーでの利用を前提としています。
+- 共有URLを持つ利用者は、グループ内のすべての項目を追加・編集・削除できます。
+- 表示名は利用者が入力した値であり、本人確認済みのユーザー情報ではありません。
+- メンバーごとの権限管理、個別のアクセス無効化、アクセストークンの再発行には対応していません。
+- やりたいことの一覧取得はページネーションに対応していないため、大量データを扱う用途は対象としていません。
+- 開発中の構成として、CDKスタック削除時にDynamoDBテーブルも削除されます。重要なデータを扱う本番運用向けの保持設定にはしていません。
 
-一方、複雑な検索・集計・リレーションが主要な要件となった場合は、RDBを含めてデータストアを再検討します。
+## 今後の改善
 
-### 永続化モデルとAPIレスポンスを分離
+- UI/UXとデザインの改善
+- 友人によるユーザーテストと、フィードバックを基にした改善
+- サーバー側の入力値制限と、不正・大量リクエストへの対策
+- グループ削除とアクセストークン再発行
+- DynamoDB TTLによる不要データの自動削除
+- 一覧取得のページネーション
+- エラーレスポンスと認証処理の共通化
 
-DynamoDBには、作成日時順で取得するための内部属性`createdAtItemId`を保存していますが、この属性はフロントエンドでは使用しません。
+## 技術ドキュメント
 
-そこで、DynamoDBから取得したオブジェクトをそのまま返さず、APIレスポンス用の型へ変換してから返しています。DBへ内部管理用の属性を追加した場合も、意図せず外部APIへ公開されることを防ぎやすくしています。
+- [Backend設計](docs/backend-design.md) — API、アクセストークン、DynamoDB、コードの責務分離
+- [デプロイと運用](docs/deployment.md) — AWS CDK、CI/CD、OIDC、監視、初回セットアップ
 
-### ドメインロジックと外部サービスへのアクセスを分離
-
-入力値の検証やグループ・項目の生成といったドメインロジックを、LambdaのHandlerやDynamoDBへのアクセスから分離しています。
-
-HandlerはRepositoryのインターフェースへ依存させ、テスト時にインメモリの実装へ差し替えられる構成にしています。これにより、AWS環境へ接続せずにドメインロジックとHandlerの振る舞いを検証できます。
-
-## API
-
-| Method | Endpoint | 概要 | 認証 |
-| --- | --- | --- | --- |
-| POST | `/groups` | グループ作成 | 不要 |
-| GET | `/groups/{groupId}` | グループ取得 | Bearer Token |
-| GET | `/groups/{groupId}/items` | やりたいこと一覧取得 | Bearer Token |
-| POST | `/groups/{groupId}/items` | やりたいこと追加 | Bearer Token |
-| PATCH | `/groups/{groupId}/items/{itemId}` | やりたいこと編集 | Bearer Token |
-| DELETE | `/groups/{groupId}/items/{itemId}` | やりたいこと削除 | Bearer Token |
-
-## データ設計
-
-### Groups
-
-| Attribute | 用途 |
-| --- | --- |
-| `groupId` | Partition Key |
-| `groupName` | グループ名 |
-| `accessTokenHash` | アクセストークンのハッシュ値 |
-| `createdByDisplayName` | グループ作成時に入力された表示名 |
-| `createdAt` | 作成日時 |
-
-### WishItems
-
-| Attribute | 用途 |
-| --- | --- |
-| `groupId` | Partition Key |
-| `itemId` | Sort Key |
-| `content` | やりたいこと |
-| `createdByDisplayName` | 登録時に入力された表示名 |
-| `updatedByDisplayName` | 最終更新時に入力された表示名 |
-| `createdAt` | 作成日時 |
-| `updatedAt` | 更新日時 |
-| `createdAtItemId` | 作成日時順取得用のGSI Sort Key |
-
-やりたいことを作成日時の新しい順で取得するため、次のGSIを設定しています。
-
-```text
-Index:         ItemsByCreatedAt
-Partition Key: groupId
-Sort Key:      createdAtItemId
-```
-
-`createdAtItemId`には`{createdAt}#{itemId}`を保存します。作成日時だけでなく`itemId`も含めることで、同一時刻に作成された項目がある場合もSort Keyを一意にしています。
-
-## テスト・CI
-
-GitHub Actionsにより、`main`ブランチへのpushと`main`ブランチを対象とするpull requestで自動検証を行っています。
-
-| 対象 | CIでの検証内容 |
-| --- | --- |
-| Backend | Vitestによるテスト、TypeScriptの型チェック |
-| Frontend | TypeScriptの型チェックを含むproduction build |
-| Infrastructure | Frontend build、Infrastructure build、CDK synth |
-
-InfrastructureのCIでは、LambdaのバンドルとフロントエンドのS3 Assetを含め、クリーンな環境からCloudFormationテンプレートを生成できることを確認しています。
-
-## 開発環境での検証
+## ローカル開発
 
 ### 前提
 
@@ -197,7 +159,7 @@ cd ../infra
 npm ci
 ```
 
-### Backend
+Backendのテストと型チェックを実行します。
 
 ```bash
 cd backend
@@ -205,9 +167,7 @@ npm test
 npx tsc --noEmit
 ```
 
-### Frontend
-
-起動またはビルドには、デプロイ済みAPIのURLを`VITE_API_BASE_URL`へ指定します。
+Frontendを起動またはbuildするには、デプロイ済みAPIのURLを`VITE_API_BASE_URL`へ指定します。
 
 ```bash
 cd frontend
@@ -220,55 +180,10 @@ npm run lint
 VITE_API_BASE_URL=https://example.execute-api.ap-northeast-1.amazonaws.com npm run build
 ```
 
-### Infrastructure
-
-CDK synthでは`frontend/dist`をS3 Assetとして参照するため、先にFrontendをビルドします。また、通知先メールアドレスを`ALARM_EMAIL`へ指定します。
+CDK synthでは`frontend/dist`をS3 Assetとして参照するため、先にFrontendをbuildします。
 
 ```bash
 cd infra
 npm run build
 ALARM_EMAIL=example@example.com npx cdk synth
-```
-
-## 監視・コスト管理
-
-公開環境では、次の項目を設定しています。
-
-- LambdaのCloudWatch Logsを30日間保持
-- Lambdaの`Errors`をCloudWatch Alarmで監視
-- API Gatewayの5XXエラーをCloudWatch Alarmで監視
-- Alarm発生時にSNS経由でメール通知
-- AWS Budgetsで月額利用料金を監視
-
-アプリケーション側で例外を捕捉してHTTP 500を返す場合、Lambdaの`Errors`メトリクスには現れません。そのため、Lambdaの実行エラーに加えてAPI Gatewayの5XXも監視しています。
-
-CloudWatch AlarmとSNSはAWS CDKで管理し、AWS BudgetsはCDKとは別に設定しています。
-
-## 現在の前提・制約
-
-- 共有URLを知る少人数の信頼されたメンバーでの利用を前提としています。
-- 共有URLを持つ利用者は、グループ内のすべての項目を追加・編集・削除できます。
-- 表示名は利用者が入力した値であり、本人確認済みのユーザー情報ではありません。
-- メンバーごとの権限管理、個別のアクセス無効化、アクセストークンの再発行には対応していません。
-- やりたいことの一覧取得はページネーションに対応していないため、大量データを扱う用途は対象としていません。
-
-## 今後の改善
-
-- UI/UXとデザインの改善
-- サーバー側の入力値制限と、不正・大量リクエストへの対策
-- グループ削除とアクセストークン再発行
-- DynamoDB TTLによる不要データの自動削除
-- 一覧取得のページネーション
-- エラーレスポンスと認証処理の共通化
-- CI/CDによるデプロイの自動化
-
-## Repository Structure
-
-```text
-peace-wishlist/
-├── frontend/                 # React + TypeScript
-├── backend/                  # Lambda + TypeScript
-│   └── src/test/             # Backend tests
-├── infra/                    # AWS CDK
-└── .github/workflows/ci.yml  # GitHub Actions
 ```
