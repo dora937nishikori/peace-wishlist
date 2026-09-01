@@ -2,187 +2,173 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useNavigate } from "react-router";
 
-import {
-  useNavigate,
-} from "react-router";
-
-import {
-  createGroup,
-} from "../api";
-
-import {
-  saveDisplayName,
-} from "../storage";
+import { createGroup } from "../api";
+import { Brand } from "../components/Brand";
+import { Icon } from "../components/Icon";
+import { saveDisplayName } from "../storage";
 
 function CreateGroupPage() {
   const navigate = useNavigate();
+  const [groupName, setGroupName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [
-    groupName,
-    setGroupName,
-  ] = useState("");
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    setError("");
 
-  const [
-    displayName,
-    setDisplayName,
-  ] = useState("");
+    const trimmedGroupName = groupName.trim();
+    const trimmedDisplayName = displayName.trim();
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+    if (!trimmedGroupName) {
+      setError("グループ名を入力してください。");
+      return;
+    }
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
+    if (!trimmedDisplayName) {
+      setError("あなたの表示名を入力してください。");
+      return;
+    }
 
-  const handleSubmit =
-    async (
-      event:
-        FormEvent<HTMLFormElement>,
-    ) => {
-      event.preventDefault();
+    try {
+      setLoading(true);
+      const result = await createGroup({
+        groupName: trimmedGroupName,
+        createdByDisplayName: trimmedDisplayName,
+      });
 
-      setError("");
+      saveDisplayName(
+        result.groupId,
+        trimmedDisplayName,
+      );
 
-      const trimmedGroupName =
-        groupName.trim();
-
-      const trimmedDisplayName =
-        displayName.trim();
-
-      if (!trimmedGroupName) {
-        setError(
-          "グループ名を入力してください",
-        );
-        return;
-      }
-
-      if (!trimmedDisplayName) {
-        setError(
-          "表示名を入力してください",
-        );
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        const result =
-          await createGroup({
-            groupName:
-              trimmedGroupName,
-
-            createdByDisplayName:
-              trimmedDisplayName,
-          });
-
-        saveDisplayName(
-          result.groupId,
-          trimmedDisplayName,
-        );
-
-        const path =
-          `/groups/${result.groupId}` +
-          `#token=${encodeURIComponent(
-            result.accessToken,
-          )}`;
-
-        navigate(path);
-      } catch (error) {
-        console.error(error);
-
-        setError(
-          error instanceof Error
-            ? error.message
-            : "グループの作成に失敗しました",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+      navigate(
+        `/groups/${result.groupId}#token=${encodeURIComponent(
+          result.accessToken,
+        )}`,
+        { state: { groupCreated: true } },
+      );
+    } catch (caughtError) {
+      console.error(caughtError);
+      setError(
+        "グループを作成できませんでした。通信環境を確認して、もう一度お試しください。",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="page">
-      <section className="card create-card">
-        <div className="brand">
-          Peace Wishlist
-        </div>
+    <main className="create-page">
+      <div className="create-shell">
+        <section className="create-intro">
+          <Brand />
 
-        <h1>
-          みんなの「やりたい」を
-          <br />
-          忘れないために。
-        </h1>
-
-        <p className="description">
-          アカウント登録なしで、
-          友達や家族とやりたいことを
-          共有できます。
-        </p>
-
-        <form
-          onSubmit={handleSubmit}
-          className="form"
-        >
-          <label className="field">
-            <span>
-              グループ名
-            </span>
-
-            <input
-              value={groupName}
-              onChange={(event) =>
-                setGroupName(
-                  event.target.value,
-                )
-              }
-              placeholder="例：人生で実装したいこと"
-              maxLength={50}
-            />
-          </label>
-
-          <label className="field">
-            <span>
-              あなたの表示名
-            </span>
-
-            <input
-              value={displayName}
-              onChange={(event) =>
-                setDisplayName(
-                  event.target.value,
-                )
-              }
-              placeholder="例：エイダ"
-              maxLength={30}
-            />
-          </label>
-
-          {error && (
-            <p className="error">
-              {error}
+          <div className="create-copy">
+            <h1>
+              今度やりたいを、
+              <br />
+              みんなのリストに。
+            </h1>
+            <p>
+              行きたい場所、食べたいもの、いつか試したいこと。
+              URLをLINEで送れば、すぐに一緒に追加できます。
             </p>
-          )}
+          </div>
 
-          <button
-            type="submit"
-            className="primary-button"
-            disabled={loading}
+          <ul className="create-benefits">
+            <li>
+              <span aria-hidden="true">01</span>
+              アカウント登録なし
+            </li>
+            <li>
+              <span aria-hidden="true">02</span>
+              共有URLを送るだけ
+            </li>
+          </ul>
+        </section>
+
+        <section
+          className="create-panel"
+          aria-labelledby="create-heading"
+        >
+          <div className="panel-heading">
+            <h2 id="create-heading">
+              新しいグループを作る
+            </h2>
+            <p>まずは2つだけ入力してください。</p>
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="create-form"
           >
-            {loading
-              ? "作成中..."
-              : "グループを作成"}
-          </button>
-        </form>
+            <label className="field">
+              <span>グループ名</span>
+              <span className="field-hint">
+                みんなに表示されます
+              </span>
+              <span className="input-edge">
+                <input
+                  value={groupName}
+                  onChange={(event) =>
+                    setGroupName(event.target.value)
+                  }
+                  placeholder="例：夏休みにやりたいこと"
+                  maxLength={50}
+                  autoComplete="off"
+                />
+              </span>
+            </label>
 
-        <p className="hint">
-          作成後に表示されるURLを
-          共有するだけで参加できます。
-        </p>
-      </section>
+            <label className="field">
+              <span>あなたの表示名</span>
+              <span className="field-hint">
+                本名でなくても大丈夫です
+              </span>
+              <span className="input-edge">
+                <input
+                  value={displayName}
+                  onChange={(event) =>
+                    setDisplayName(event.target.value)
+                  }
+                  placeholder="例：あおい"
+                  maxLength={30}
+                  autoComplete="nickname"
+                />
+              </span>
+            </label>
+
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="primary-button create-submit"
+              disabled={loading}
+            >
+              <span>
+                {loading
+                  ? "作成しています…"
+                  : "グループを作成"}
+              </span>
+              {!loading && <Icon name="arrow-right" />}
+            </button>
+          </form>
+
+          <p className="privacy-note">
+            共有URLを知っている人は、リストの追加・編集ができます。
+          </p>
+        </section>
+      </div>
     </main>
   );
 }
