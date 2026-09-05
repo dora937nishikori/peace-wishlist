@@ -77,7 +77,8 @@ function CreateGroupPage() {
             </h1>
             <p>
               行きたい場所、食べたいもの、いつか試したいこと。
-              URLをLINEで送れば、すぐに一緒に追加できます。
+              <br />
+              URLを共有すれば、すぐに一緒に追加できます。
             </p>
           </div>
 
@@ -101,7 +102,6 @@ function CreateGroupPage() {
             <h2 id="create-heading">
               新しいグループを作る
             </h2>
-            <p>まずは2つだけ入力してください。</p>
           </div>
 
           <form
@@ -111,7 +111,6 @@ function CreateGroupPage() {
             <label className="field">
               <span>グループ名</span>
               <span className="field-hint">
-                みんなに表示されます
               </span>
               <span className="input-edge">
                 <input
@@ -129,7 +128,6 @@ function CreateGroupPage() {
             <label className="field">
               <span>あなたの表示名</span>
               <span className="field-hint">
-                本名でなくても大丈夫です
               </span>
               <span className="input-edge">
                 <input
@@ -137,7 +135,7 @@ function CreateGroupPage() {
                   onChange={(event) =>
                     setDisplayName(event.target.value)
                   }
-                  placeholder="例：あおい"
+                  placeholder="例：たけし"
                   maxLength={30}
                   autoComplete="nickname"
                 />
