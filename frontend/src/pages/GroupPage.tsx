@@ -86,6 +86,7 @@ function GroupPage() {
   const shareDialog = useRef<HTMLDialogElement>(null);
   const shareFallbackInput = useRef<HTMLInputElement>(null);
   const shareReturnFocus = useRef<HTMLElement | null>(null);
+  const groupPage = useRef<HTMLElement>(null);
   const itemMenuSummaries = useRef(
     new Map<string, HTMLElement>(),
   );
@@ -109,6 +110,49 @@ function GroupPage() {
     },
     [],
   );
+
+  useEffect(() => {
+    const openMenuSelector =
+      "details.profile-menu[open], details.item-menu[open]";
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const page = groupPage.current;
+      const target = event.target;
+      if (!page || !(target instanceof Node)) return;
+
+      page
+        .querySelectorAll<HTMLDetailsElement>(openMenuSelector)
+        .forEach((menu) => {
+          if (!menu.contains(target)) {
+            menu.removeAttribute("open");
+          }
+        });
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      const page = groupPage.current;
+      const openMenus = page?.querySelectorAll<HTMLDetailsElement>(
+        openMenuSelector,
+      );
+      if (!openMenus?.length) return;
+
+      const lastOpenMenu = openMenus[openMenus.length - 1];
+
+      event.preventDefault();
+      openMenus.forEach((menu) => menu.removeAttribute("open"));
+      lastOpenMenu.querySelector<HTMLElement>("summary")?.focus();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     const dialog = shareDialog.current;
@@ -448,7 +492,7 @@ function GroupPage() {
           <Brand />
           <section className="join-panel">
             <p className="join-inviter">
-              {group.createdByDisplayName}さんから届きました
+              {group.createdByDisplayName}から届きました
             </p>
             <h1>{group.groupName}</h1>
             <p className="join-description">
@@ -508,7 +552,7 @@ function GroupPage() {
   }
 
   return (
-    <main className="group-page">
+    <main ref={groupPage} className="group-page">
       <header className="group-topbar">
         <div className="group-topbar-inner">
           <button
@@ -775,7 +819,6 @@ function GroupPage() {
                         <span>
                           {item.updatedByDisplayName ||
                             item.createdByDisplayName}
-                          さん
                         </span>
                       </div>
 
