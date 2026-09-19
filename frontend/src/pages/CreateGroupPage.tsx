@@ -51,7 +51,6 @@ function CreateGroupPage() {
         `/groups/${result.groupId}#token=${encodeURIComponent(
           result.accessToken,
         )}`,
-        { state: { groupCreated: true } },
       );
     } catch (caughtError) {
       console.error(caughtError);
@@ -71,26 +70,15 @@ function CreateGroupPage() {
 
           <div className="create-copy">
             <h1>
-              今度やりたいを、
+              それ、しよう！を
               <br />
               みんなのリストに。
             </h1>
-            <p>
-              行きたい場所、食べたいもの、いつか試したいこと。
-              <br />
-              URLを共有すれば、すぐに一緒に追加できます。
-            </p>
           </div>
 
           <ul className="create-benefits">
-            <li>
-              <span aria-hidden="true">01</span>
-              アカウント登録なし
-            </li>
-            <li>
-              <span aria-hidden="true">02</span>
-              共有URLを送るだけ
-            </li>
+            <li>アカウント登録なし</li>
+            <li>共有URLを送るだけ</li>
           </ul>
         </section>
 
@@ -110,8 +98,6 @@ function CreateGroupPage() {
           >
             <label className="field">
               <span>グループ名</span>
-              <span className="field-hint">
-              </span>
               <span className="input-edge">
                 <input
                   value={groupName}
@@ -127,8 +113,6 @@ function CreateGroupPage() {
 
             <label className="field">
               <span>あなたの表示名</span>
-              <span className="field-hint">
-              </span>
               <span className="input-edge">
                 <input
                   value={displayName}

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev:local": "tsx watch src/localServer.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -1,8 +1,10 @@
 type IconName =
+  | "arrow-left"
   | "arrow-right"
   | "close"
   | "edit"
   | "more"
+  | "plus"
   | "share"
   | "trash";
 
@@ -16,6 +18,12 @@ export function Icon({
   size = 20,
 }: IconProps) {
   const paths = {
+    "arrow-left": (
+      <>
+        <path d="M19 12H5" />
+        <path d="m11 18-6-6 6-6" />
+      </>
+    ),
     "arrow-right": (
       <>
         <path d="M5 12h14" />
@@ -39,6 +47,12 @@ export function Icon({
         <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
         <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
         <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
+      </>
+    ),
+    plus: (
+      <>
+        <path d="M12 5v14" />
+        <path d="M5 12h14" />
       </>
     ),
     share: (

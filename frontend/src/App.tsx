@@ -9,6 +9,9 @@ import CreateGroupPage
 import GroupPage
   from "./pages/GroupPage";
 
+import WishItemPage
+  from "./pages/WishItemPage";
+
 function App() {
   return (
     <Routes>
@@ -23,6 +26,13 @@ function App() {
         path="/groups/:groupId"
         element={
           <GroupPage />
+        }
+      />
+
+      <Route
+        path="/groups/:groupId/items/:itemId"
+        element={
+          <WishItemPage />
         }
       />
     </Routes>

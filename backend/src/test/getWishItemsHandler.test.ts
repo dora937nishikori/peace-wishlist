@@ -36,6 +36,8 @@ const items: WishItem[] = [
     groupId: "group-001",
     itemId: "item-002",
     content: "焼肉を食べる",
+    comment: "駅の近くで探す",
+    url: "https://example.com/yakiniku",
     createdByDisplayName: "こり",
     updatedByDisplayName: "こり",
     createdAt: "2026-08-10T02:00:00.000Z",
@@ -226,6 +228,8 @@ describe("getWishItemsHandler", () => {
       expect(body.items[1].itemId).toBe(
         "item-001",
       );
+      expect(body.items[0].comment).toBeUndefined();
+      expect(body.items[0].url).toBeUndefined();
     },
   );
 

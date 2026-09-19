@@ -18,6 +18,7 @@ Peace Wishlistは、友人・家族など少人数の信頼されたメンバー
 | GET | `/groups/{groupId}` | グループ取得 | Bearer Token |
 | GET | `/groups/{groupId}/items` | やりたいこと一覧取得 | Bearer Token |
 | POST | `/groups/{groupId}/items` | やりたいこと追加 | Bearer Token |
+| GET | `/groups/{groupId}/items/{itemId}` | やりたいこと詳細取得 | Bearer Token |
 | PATCH | `/groups/{groupId}/items/{itemId}` | やりたいこと編集 | Bearer Token |
 | DELETE | `/groups/{groupId}/items/{itemId}` | やりたいこと削除 | Bearer Token |
 
@@ -76,7 +77,7 @@ MVPで必要な主なアクセスパターンは次の3つです。
 
 - `groupId`によるグループ取得
 - `groupId`によるやりたいこと一覧の取得
-- `groupId + itemId`による更新・削除
+- `groupId + itemId`による詳細取得・更新・削除
 
 JOINや複雑な検索を必要とせず、Lambdaからのコネクション管理も不要です。また、少人数でアクセス頻度が低い時間の多い利用を想定しているため、DynamoDBのオンデマンドキャパシティーモードを採用しました。
 
@@ -98,12 +99,16 @@ JOINや複雑な検索を必要とせず、Lambdaからのコネクション管�
 | --- | --- |
 | `groupId` | Partition Key |
 | `itemId` | Sort Key |
-| `content` | やりたいこと |
+| `content` | やりたいことの名前（既存データとの互換性を維持） |
+| `comment` | 任意のコメント。既存データでは未設定の場合がある |
+| `url` | 任意の関連URL。既存データでは未設定の場合がある |
 | `createdByDisplayName` | 登録時に入力された表示名 |
 | `updatedByDisplayName` | 最終更新時に入力された表示名 |
 | `createdAt` | 作成日時 |
 | `updatedAt` | 更新日時 |
 | `createdAtItemId` | 作成日時順取得用のGSI Sort Key |
+
+将来の複数画像対応では、画像本体はS3へ保存し、WishItemsテーブルにはオブジェクトキーと表示順だけを配列として保持します。現時点では画像用の属性やアップロードAPIは追加していません。
 
 ### 作成日時順の取得
 
@@ -145,9 +150,12 @@ DynamoDBには、作成日時順で取得するための内部属性`createdAtIt
 
 DynamoDBから取得したオブジェクトをそのまま返さず、APIレスポンス用の型へ変換することで、内部管理用の属性が意図せず外部APIへ公開されることを防ぎやすくしています。
 
-## 現在の改善課題
+## 入力値の検証
 
-- 入力値の最大長など、サーバー側の制限を追加する
+- やりたいことの名前は必須、最大200文字
+- コメントは任意、最大1,000文字
+- URLは任意、最大2,048文字
+- URLにスキームがない場合は`https://`を補い、`http`または`https`だけを許可
 - 不正・大量リクエストに対するレート制限を検討する
 - 認可処理とエラーレスポンスを共通化する
 - アクセストークンの再発行に対応する

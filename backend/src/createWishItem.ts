@@ -1,8 +1,14 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  normalizeWishItemFields,
+} from "./wishItemFields";
+
 export type CreateWishItemInput = {
   groupId: string;
   content: string;
+  comment?: string;
+  url?: string;
   displayName: string;
 };
 
@@ -10,6 +16,8 @@ export type WishItem = {
   groupId: string;
   itemId: string;
   content: string;
+  comment?: string;
+  url?: string;
   createdByDisplayName: string;
   updatedByDisplayName: string;
   createdAt: string;
@@ -20,14 +28,8 @@ export type WishItem = {
 export function createWishItem(
   input: CreateWishItemInput,
 ): WishItem {
-  const content = input.content.trim();
+  const fields = normalizeWishItemFields(input);
   const displayName = input.displayName.trim();
-
-  if (content.length === 0) {
-    throw new Error(
-      "やりたいことを入力してください",
-    );
-  }
 
   if (displayName.length === 0) {
     throw new Error(
@@ -41,7 +43,7 @@ export function createWishItem(
   return {
     groupId: input.groupId,
     itemId,
-    content,
+    ...fields,
     createdByDisplayName: displayName,
     updatedByDisplayName: displayName,
     createdAt: now,

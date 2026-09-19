@@ -76,7 +76,11 @@ function isCreateWishItemInput(
 
   return (
     typeof record.content === "string" &&
-    typeof record.displayName === "string"
+    typeof record.displayName === "string" &&
+    (record.comment === undefined ||
+      typeof record.comment === "string") &&
+    (record.url === undefined ||
+      typeof record.url === "string")
   );
 }
 

@@ -1,27 +1,25 @@
 import type {
   WishItem,
 } from "./createWishItem";
+import {
+  normalizeWishItemFields,
+} from "./wishItemFields";
 
 export type UpdateWishItemInput = {
   item: WishItem;
   content: string;
+  comment?: string;
+  url?: string;
   displayName: string;
 };
 
 export function updateWishItem(
   input: UpdateWishItemInput,
 ): WishItem {
-  const content =
-    input.content.trim();
+  const fields = normalizeWishItemFields(input);
 
   const displayName =
     input.displayName.trim();
-
-  if (content.length === 0) {
-    throw new Error(
-      "やりたいことを入力してください",
-    );
-  }
 
   if (displayName.length === 0) {
     throw new Error(
@@ -32,7 +30,7 @@ export function updateWishItem(
   return {
     ...input.item,
 
-    content,
+    ...fields,
 
     updatedByDisplayName:
       displayName,

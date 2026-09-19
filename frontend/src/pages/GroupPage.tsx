@@ -12,13 +12,10 @@ import {
 } from "react-router";
 
 import {
-  createWishItem,
-  deleteWishItem,
   getGroup,
   getWishItems,
-  updateWishItem,
   type Group,
-  type WishItem,
+  type WishItemSummary,
 } from "../api";
 import { Brand } from "../components/Brand";
 import { Icon } from "../components/Icon";
@@ -33,6 +30,10 @@ type Notice = {
   tone: "success" | "error";
 };
 
+type GroupLocationState = {
+  itemDeleted?: boolean;
+} | null;
+
 function GroupPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,56 +41,25 @@ function GroupPage() {
   const accessToken = new URLSearchParams(
     location.hash.slice(1),
   ).get("token");
-  const wasJustCreated = Boolean(
-    (
-      location.state as {
-        groupCreated?: boolean;
-      } | null
-    )?.groupCreated,
-  );
+  const locationState =
+    location.state as GroupLocationState;
 
   const [group, setGroup] = useState<Group | null>(null);
-  const [items, setItems] = useState<WishItem[]>([]);
+  const [items, setItems] = useState<WishItemSummary[]>([]);
   const [displayName, setDisplayName] = useState("");
   const [displayNameInput, setDisplayNameInput] =
     useState("");
-  const [newItemContent, setNewItemContent] = useState("");
-  const [editingItemId, setEditingItemId] = useState<
-    string | null
-  >(null);
-  const [editingContent, setEditingContent] = useState("");
-  const [confirmingItemId, setConfirmingItemId] = useState<
-    string | null
-  >(null);
-  const [newItemId, setNewItemId] = useState<string | null>(
-    null,
-  );
-  const [showCreatedGuide, setShowCreatedGuide] =
-    useState(wasJustCreated);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [updatingItemId, setUpdatingItemId] = useState<
-    string | null
-  >(null);
-  const [deletingItemId, setDeletingItemId] = useState<
-    string | null
-  >(null);
   const [loadError, setLoadError] = useState("");
-  const [formError, setFormError] = useState("");
-  const [editError, setEditError] = useState("");
+  const [joinError, setJoinError] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [shareFallbackUrl, setShareFallbackUrl] = useState("");
   const noticeTimer = useRef<number | null>(null);
-  const newItemInput = useRef<HTMLInputElement>(null);
-  const deleteCancelButton = useRef<HTMLButtonElement>(null);
   const shareDialog = useRef<HTMLDialogElement>(null);
   const shareFallbackInput = useRef<HTMLInputElement>(null);
   const shareReturnFocus = useRef<HTMLElement | null>(null);
   const groupPage = useRef<HTMLElement>(null);
-  const itemMenuSummaries = useRef(
-    new Map<string, HTMLElement>(),
-  );
 
   const announce = useCallback((nextNotice: Notice) => {
     if (noticeTimer.current) {
@@ -102,6 +72,25 @@ function GroupPage() {
     }, 3600);
   }, []);
 
+  useEffect(() => {
+    if (!locationState?.itemDeleted) return;
+
+    announce({
+      message: "削除しました。",
+      tone: "success",
+    });
+    navigate(`${location.pathname}${location.hash}`, {
+      replace: true,
+      state: null,
+    });
+  }, [
+    announce,
+    location.hash,
+    location.pathname,
+    locationState?.itemDeleted,
+    navigate,
+  ]);
+
   useEffect(
     () => () => {
       if (noticeTimer.current) {
@@ -112,16 +101,15 @@ function GroupPage() {
   );
 
   useEffect(() => {
-    const openMenuSelector =
-      "details.profile-menu[open], details.item-menu[open]";
-
     const handlePointerDown = (event: PointerEvent) => {
       const page = groupPage.current;
       const target = event.target;
       if (!page || !(target instanceof Node)) return;
 
       page
-        .querySelectorAll<HTMLDetailsElement>(openMenuSelector)
+        .querySelectorAll<HTMLDetailsElement>(
+          "details.profile-menu[open]",
+        )
         .forEach((menu) => {
           if (!menu.contains(target)) {
             menu.removeAttribute("open");
@@ -132,24 +120,24 @@ function GroupPage() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
 
-      const page = groupPage.current;
-      const openMenus = page?.querySelectorAll<HTMLDetailsElement>(
-        openMenuSelector,
-      );
-      if (!openMenus?.length) return;
-
-      const lastOpenMenu = openMenus[openMenus.length - 1];
+      const openMenu = groupPage.current?.querySelector<
+        HTMLDetailsElement
+      >("details.profile-menu[open]");
+      if (!openMenu) return;
 
       event.preventDefault();
-      openMenus.forEach((menu) => menu.removeAttribute("open"));
-      lastOpenMenu.querySelector<HTMLElement>("summary")?.focus();
+      openMenu.removeAttribute("open");
+      openMenu.querySelector<HTMLElement>("summary")?.focus();
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener(
+        "pointerdown",
+        handlePointerDown,
+      );
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
@@ -209,14 +197,14 @@ function GroupPage() {
     const name = displayNameInput.trim();
 
     if (!groupId || !name) {
-      setFormError("表示名を入力してください。");
+      setJoinError("表示名を入力してください。");
       return;
     }
 
     saveDisplayName(groupId, name);
     setDisplayName(name);
     setDisplayNameInput("");
-    setFormError("");
+    setJoinError("");
   };
 
   const handleChangeDisplayName = () => {
@@ -224,125 +212,21 @@ function GroupPage() {
     removeDisplayName(groupId);
     setDisplayNameInput(displayName);
     setDisplayName("");
-    setFormError("");
+    setJoinError("");
   };
 
-  const handleCreateItem = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-    const content = newItemContent.trim();
-
-    if (!groupId || !accessToken || !displayName) return;
-    if (!content) {
-      setFormError("やりたいことを入力してください。");
-      newItemInput.current?.focus();
-      return;
-    }
-
-    try {
-      setCreating(true);
-      setFormError("");
-      const item = await createWishItem(
-        groupId,
-        accessToken,
-        { content, displayName },
-      );
-
-      setItems((currentItems) => [item, ...currentItems]);
-      setNewItemContent("");
-      setNewItemId(item.itemId);
-      window.setTimeout(() => setNewItemId(null), 1100);
-      announce({
-        message: "リストに追加しました。",
-        tone: "success",
-      });
-    } catch (caughtError) {
-      console.error(caughtError);
-      setFormError(
-        "追加できませんでした。通信環境を確認して、もう一度お試しください。",
-      );
-    } finally {
-      setCreating(false);
-    }
+  const openNewItem = () => {
+    if (!groupId) return;
+    navigate(
+      `/groups/${encodeURIComponent(groupId)}/items/new${location.hash}`,
+    );
   };
 
-  const startEditing = (item: WishItem) => {
-    setEditingItemId(item.itemId);
-    setEditingContent(item.content);
-    setConfirmingItemId(null);
-    setFormError("");
-    setEditError("");
-  };
-
-  const cancelEditing = (itemId?: string) => {
-    setEditingItemId(null);
-    setEditingContent("");
-    setEditError("");
-
-    if (itemId) {
-      window.requestAnimationFrame(() => {
-        itemMenuSummaries.current.get(itemId)?.focus();
-      });
-    }
-  };
-
-  const handleUpdateItem = async (itemId: string) => {
-    const content = editingContent.trim();
-    if (!groupId || !accessToken || !displayName) return;
-    if (!content) {
-      setEditError("やりたいことを入力してください。");
-      return;
-    }
-
-    try {
-      setUpdatingItemId(itemId);
-      setEditError("");
-      const updatedItem = await updateWishItem(
-        groupId,
-        itemId,
-        accessToken,
-        { content, displayName },
-      );
-
-      setItems((currentItems) =>
-        currentItems.map((item) =>
-          item.itemId === itemId ? updatedItem : item,
-        ),
-      );
-      cancelEditing();
-      announce({ message: "更新しました。", tone: "success" });
-    } catch (caughtError) {
-      console.error(caughtError);
-      setEditError(
-        "更新できませんでした。時間をおいて、もう一度お試しください。",
-      );
-    } finally {
-      setUpdatingItemId(null);
-    }
-  };
-
-  const handleDeleteItem = async (itemId: string) => {
-    if (!groupId || !accessToken) return;
-
-    try {
-      setDeletingItemId(itemId);
-      setFormError("");
-      await deleteWishItem(groupId, itemId, accessToken);
-      setItems((currentItems) =>
-        currentItems.filter((item) => item.itemId !== itemId),
-      );
-      setConfirmingItemId(null);
-      announce({ message: "削除しました。", tone: "success" });
-    } catch (caughtError) {
-      console.error(caughtError);
-      announce({
-        message: "削除できませんでした。もう一度お試しください。",
-        tone: "error",
-      });
-    } finally {
-      setDeletingItemId(null);
-    }
+  const openItem = (itemId: string) => {
+    if (!groupId) return;
+    navigate(
+      `/groups/${encodeURIComponent(groupId)}/items/${encodeURIComponent(itemId)}${location.hash}`,
+    );
   };
 
   const copyShareUrl = async (): Promise<boolean> => {
@@ -389,7 +273,6 @@ function GroupPage() {
             url: window.location.href,
           });
           announce({ message: "共有しました。", tone: "success" });
-          setShowCreatedGuide(false);
           return;
         } catch (caughtError) {
           if (
@@ -405,7 +288,7 @@ function GroupPage() {
       const copied = await copyShareUrl();
       if (copied) {
         announce({
-          message: "共有URLをコピーしました。LINEに貼り付けて送れます。",
+          message: "共有URLをコピーしました。",
           tone: "success",
         });
       } else {
@@ -415,7 +298,6 @@ function GroupPage() {
           tone: "error",
         });
       }
-      setShowCreatedGuide(false);
     } catch (caughtError) {
       console.error(caughtError);
       setShareFallbackUrl(window.location.href);
@@ -449,7 +331,6 @@ function GroupPage() {
         </header>
         <div className="group-shell" aria-busy="true">
           <div className="skeleton skeleton-title" />
-          <div className="skeleton skeleton-subtitle" />
           <div className="skeleton skeleton-form" />
           <div className="skeleton skeleton-row" />
           <div className="skeleton skeleton-row skeleton-row-short" />
@@ -495,9 +376,6 @@ function GroupPage() {
               {group.createdByDisplayName}から届きました
             </p>
             <h1>{group.groupName}</h1>
-            <p className="join-description">
-              表示名を入れると、みんなのやりたいことを見たり追加したりできます。
-            </p>
 
             <form
               onSubmit={handleSaveDisplayName}
@@ -505,35 +383,32 @@ function GroupPage() {
             >
               <label className="field">
                 <span>あなたの表示名</span>
-                <span className="field-hint">
-                  このグループ内で表示されます
-                </span>
                 <span className="input-edge">
                   <input
                     id="join-display-name"
                     value={displayNameInput}
                     onChange={(event) => {
                       setDisplayNameInput(event.target.value);
-                      if (formError) setFormError("");
+                      if (joinError) setJoinError("");
                     }}
                     placeholder="例：あおい"
                     maxLength={30}
                     autoComplete="nickname"
-                    aria-invalid={Boolean(formError)}
+                    aria-invalid={Boolean(joinError)}
                     aria-describedby={
-                      formError ? "join-name-error" : undefined
+                      joinError ? "join-name-error" : undefined
                     }
                   />
                 </span>
               </label>
 
-              {formError && (
+              {joinError && (
                 <p
                   id="join-name-error"
                   className="form-error"
                   role="alert"
                 >
-                  {formError}
+                  {joinError}
                 </p>
               )}
 
@@ -570,6 +445,7 @@ function GroupPage() {
               className="share-button"
               onClick={() => void handleShare()}
               disabled={sharing}
+              aria-label={sharing ? "共有中" : "グループを共有"}
             >
               <Icon name="share" />
               <span>{sharing ? "共有中…" : "共有"}</span>
@@ -606,80 +482,19 @@ function GroupPage() {
 
       <div className="group-shell">
         <section className="group-heading">
-          <div>
-            <h1>{group.groupName}</h1>
-            <p>{items.length}件のやりたいこと</p>
-          </div>
+          <h1>{group.groupName}</h1>
         </section>
 
-        {showCreatedGuide && (
-          <section className="creation-guide" aria-label="次のステップ">
-            <div>
-              <strong>グループができました</strong>
-              <p>まずURLをLINEで送りましょう。</p>
-            </div>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => void handleShare()}
-              disabled={sharing}
-            >
-              <Icon name="share" />
-              LINEなどで共有
-            </button>
-            <button
-              type="button"
-              className="icon-button guide-close"
-              onClick={() => setShowCreatedGuide(false)}
-              aria-label="案内を閉じる"
-            >
-              <Icon name="close" />
-            </button>
-          </section>
-        )}
-
-        <form
-          className="quick-add"
-          onSubmit={handleCreateItem}
-        >
-          <label htmlFor="new-wish">やりたいことを追加</label>
-          <div className="quick-add-row">
-            <span className="input-edge">
-              <input
-                ref={newItemInput}
-                id="new-wish"
-                value={newItemContent}
-                onChange={(event) => {
-                  setNewItemContent(event.target.value);
-                  if (formError) setFormError("");
-                }}
-                placeholder="例：海が見える場所でキャンプ"
-                maxLength={200}
-                autoComplete="off"
-                aria-invalid={Boolean(formError)}
-                aria-describedby={
-                  formError ? "new-wish-error" : undefined
-                }
-              />
-            </span>
-            <button
-              type="submit"
-              className="primary-button add-button"
-              disabled={creating}
-            >
-              {creating ? "追加中…" : "追加する"}
-            </button>
-          </div>
-          {formError && (
-            <p
-              id="new-wish-error"
-              className="form-error"
-              role="alert"
-            >
-              {formError}
-            </p>
-          )}
-        </form>
+        <section className="add-launch">
+          <button
+            type="button"
+            className="primary-button add-launch-button"
+            onClick={openNewItem}
+          >
+            <Icon name="plus" />
+            追加
+          </button>
+        </section>
 
         <section
           className="wishlist"
@@ -696,177 +511,35 @@ function GroupPage() {
                 <span />
               </span>
               <h3>まだ何もありません</h3>
-              <p>
-                思いついたことをひとつ入れると、みんなも続けやすくなります。
-              </p>
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => newItemInput.current?.focus()}
+                onClick={openNewItem}
               >
-                最初のひとつを追加
+                追加する
               </button>
             </div>
           ) : (
             <ul className="wish-list">
               {items.map((item) => (
-                <li
-                  key={item.itemId}
-                  className={
-                    item.itemId === newItemId
-                      ? "wish-row is-new"
-                      : "wish-row"
-                  }
-                >
-                  {editingItemId === item.itemId ? (
-                    <div className="inline-editor">
-                      <label
-                        htmlFor={`edit-${item.itemId}`}
-                        className="sr-only"
-                      >
-                        やりたいことを編集
-                      </label>
-                      <span className="input-edge">
-                        <input
-                          id={`edit-${item.itemId}`}
-                          value={editingContent}
-                          onChange={(event) => {
-                            setEditingContent(event.target.value);
-                            if (editError) setEditError("");
-                          }}
-                          maxLength={200}
-                          autoFocus
-                          aria-invalid={Boolean(editError)}
-                          aria-describedby={
-                            editError
-                              ? `edit-error-${item.itemId}`
-                              : undefined
-                          }
-                        />
+                <li key={item.itemId} className="wish-row">
+                  <button
+                    type="button"
+                    className="wish-link"
+                    onClick={() => openItem(item.itemId)}
+                    aria-label={`${item.content}の詳細を開く`}
+                  >
+                    <span className="wish-content">
+                      <span className="wish-name">
+                        {item.content}
                       </span>
-                      {editError && (
-                        <p
-                          id={`edit-error-${item.itemId}`}
-                          className="form-error edit-error"
-                          role="alert"
-                        >
-                          {editError}
-                        </p>
-                      )}
-                      <div className="inline-actions">
-                        <button
-                          type="button"
-                          className="text-button"
-                          onClick={() => cancelEditing(item.itemId)}
-                        >
-                          キャンセル
-                        </button>
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() =>
-                            void handleUpdateItem(item.itemId)
-                          }
-                          disabled={updatingItemId === item.itemId}
-                        >
-                          {updatingItemId === item.itemId
-                            ? "保存中…"
-                            : "保存"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : confirmingItemId === item.itemId ? (
-                    <div className="delete-confirmation">
-                      <div>
-                        <strong>この項目を削除しますか？</strong>
-                        <p>削除すると元に戻せません。</p>
-                      </div>
-                      <div className="inline-actions">
-                        <button
-                          ref={deleteCancelButton}
-                          type="button"
-                          className="text-button"
-                          onClick={() => {
-                            setConfirmingItemId(null);
-                            window.requestAnimationFrame(() => {
-                              itemMenuSummaries.current
-                                .get(item.itemId)
-                                ?.focus();
-                            });
-                          }}
-                        >
-                          やめる
-                        </button>
-                        <button
-                          type="button"
-                          className="danger-button"
-                          onClick={() =>
-                            void handleDeleteItem(item.itemId)
-                          }
-                          disabled={deletingItemId === item.itemId}
-                        >
-                          <Icon name="trash" />
-                          {deletingItemId === item.itemId
-                            ? "削除中…"
-                            : "削除"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="wish-content">
-                        <p>{item.content}</p>
-                        <span>
-                          {item.updatedByDisplayName ||
-                            item.createdByDisplayName}
-                        </span>
-                      </div>
-
-                      <details className="item-menu">
-                        <summary
-                          ref={(element) => {
-                            if (element) {
-                              itemMenuSummaries.current.set(
-                                item.itemId,
-                                element,
-                              );
-                            } else {
-                              itemMenuSummaries.current.delete(
-                                item.itemId,
-                              );
-                            }
-                          }}
-                          aria-label={`${item.content}のメニュー`}
-                        >
-                          <Icon name="more" />
-                        </summary>
-                        <div className="menu-popover item-popover">
-                          <button
-                            type="button"
-                            onClick={() => startEditing(item)}
-                          >
-                            <Icon name="edit" />
-                            編集
-                          </button>
-                          <button
-                            type="button"
-                            className="menu-danger"
-                            onClick={() => {
-                              setConfirmingItemId(item.itemId);
-                              setEditingItemId(null);
-                              setEditError("");
-                              window.requestAnimationFrame(() => {
-                                deleteCancelButton.current?.focus();
-                              });
-                            }}
-                          >
-                            <Icon name="trash" />
-                            削除
-                          </button>
-                        </div>
-                      </details>
-                    </>
-                  )}
+                      <span className="wish-author">
+                        {item.updatedByDisplayName ||
+                          item.createdByDisplayName}
+                      </span>
+                    </span>
+                    <Icon name="arrow-right" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -902,19 +575,19 @@ function GroupPage() {
           >
             <Icon name="close" />
           </button>
-          <h2 id="share-fallback-heading">
-            URLをコピーしてください
-          </h2>
+          <h2 id="share-fallback-heading">共有URL</h2>
           <p>
-            下のURLを長押ししてコピーし、LINEに貼り付けて送れます。
+            下のURLを長押ししてコピーし、LINEなどに貼り付けてください。
           </p>
-          <input
-            ref={shareFallbackInput}
-            value={shareFallbackUrl}
-            readOnly
-            onFocus={(event) => event.currentTarget.select()}
-            aria-label="共有URL"
-          />
+          <span className="input-edge">
+            <input
+              ref={shareFallbackInput}
+              value={shareFallbackUrl}
+              readOnly
+              aria-label="共有URL"
+              onFocus={(event) => event.currentTarget.select()}
+            />
+          </span>
           <button
             type="button"
             className="secondary-button"

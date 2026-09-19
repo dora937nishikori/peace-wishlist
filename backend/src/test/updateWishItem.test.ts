@@ -30,11 +30,21 @@ describe("updateWishItem", () => {
       updateWishItem({
         item: existingItem,
         content: "秋に箱根へ行く",
+        comment: "紅葉を見たい",
+        url: "https://example.com/autumn",
         displayName: "山田",
       });
 
     expect(updatedItem.content).toBe(
       "秋に箱根へ行く",
+    );
+
+    expect(updatedItem.comment).toBe(
+      "紅葉を見たい",
+    );
+
+    expect(updatedItem.url).toBe(
+      "https://example.com/autumn",
     );
 
     expect(

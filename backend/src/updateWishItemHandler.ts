@@ -75,6 +75,8 @@ function isUpdateInput(
   value: unknown,
 ): value is {
   content: string;
+  comment?: string;
+  url?: string;
   displayName: string;
 } {
   if (
@@ -94,7 +96,11 @@ function isUpdateInput(
     typeof record.content
       === "string" &&
     typeof record.displayName
-      === "string"
+      === "string" &&
+    (record.comment === undefined ||
+      typeof record.comment === "string") &&
+    (record.url === undefined ||
+      typeof record.url === "string")
   );
 }
 
@@ -239,6 +245,10 @@ export function createUpdateWishItemHandler(
             existingItem,
           content:
             requestBody.content,
+          comment:
+            requestBody.comment,
+          url:
+            requestBody.url,
           displayName:
             requestBody
               .displayName,

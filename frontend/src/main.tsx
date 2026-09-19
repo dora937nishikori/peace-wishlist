@@ -7,21 +7,28 @@ import {
 } from "react-dom/client";
 
 import {
-  BrowserRouter,
+  createBrowserRouter,
+  RouterProvider,
 } from "react-router";
 
 import "./index.css";
 
 import App from "./App.tsx";
+import UnexpectedErrorPage from
+  "./pages/UnexpectedErrorPage.tsx";
+
+const router = createBrowserRouter([
+  {
+    path: "/*",
+    Component: App,
+    ErrorBoundary: UnexpectedErrorPage,
+  },
+]);
 
 createRoot(
-  document.getElementById(
-    "root",
-  )!,
+  document.getElementById("root")!,
 ).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </StrictMode>,
 );

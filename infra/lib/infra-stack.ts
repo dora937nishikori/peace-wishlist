@@ -241,6 +241,35 @@ export class InfraStack extends cdk.Stack {
         },
       );
 
+    const getWishItemFunction =
+      new lambdaNodejs.NodejsFunction(
+        this,
+        "GetWishItemFunction",
+        {
+          entry: path.join(
+            __dirname,
+            "../../backend/src/getWishItemHandler.ts",
+          ),
+          handler: "handler",
+          runtime: lambda.Runtime.NODEJS_24_X,
+          depsLockFilePath: path.join(
+            __dirname,
+            "../../backend/package-lock.json",
+          ),
+          environment: {
+            GROUPS_TABLE_NAME:
+              groupsTable.tableName,
+            WISH_ITEMS_TABLE_NAME:
+              wishItemsTable.tableName,
+          },
+          bundling: {
+            target: "node24",
+            sourceMap: true,
+            minify: false,
+          },
+        },
+      );
+
     const updateWishItemFunction =
       new lambdaNodejs.NodejsFunction(
         this,
@@ -304,6 +333,7 @@ export class InfraStack extends cdk.Stack {
       getGroupFunction,
       createWishItemFunction,
       getWishItemsFunction,
+      getWishItemFunction,
       updateWishItemFunction,
       deleteWishItemFunction,
     ];
@@ -390,6 +420,14 @@ export class InfraStack extends cdk.Stack {
 
     wishItemsTable.grantReadData(
       getWishItemsFunction,
+    );
+
+    groupsTable.grantReadData(
+      getWishItemFunction,
+    );
+
+    wishItemsTable.grantReadData(
+      getWishItemFunction,
     );
 
     groupsTable.grantReadData(
@@ -568,6 +606,12 @@ export class InfraStack extends cdk.Stack {
         getWishItemsFunction,
       );
 
+    const getWishItemIntegration =
+      new HttpLambdaIntegration(
+        "GetWishItemIntegration",
+        getWishItemFunction,
+      );
+
     const updateWishItemIntegration =
       new HttpLambdaIntegration(
         "UpdateWishItemIntegration",
@@ -612,6 +656,15 @@ export class InfraStack extends cdk.Stack {
       ],
       integration:
         getWishItemsIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/groups/{groupId}/items/{itemId}",
+      methods: [
+        apigatewayv2.HttpMethod.GET,
+      ],
+      integration:
+        getWishItemIntegration,
     });
 
     httpApi.addRoutes({

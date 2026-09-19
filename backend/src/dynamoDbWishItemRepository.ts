@@ -82,12 +82,20 @@ export class DynamoDbWishItemRepository
 
         UpdateExpression: `
           SET content = :content,
+              comment = :comment,
+              #url = :url,
               updatedByDisplayName = :updatedByDisplayName,
               updatedAt = :updatedAt
         `,
 
+        ExpressionAttributeNames: {
+          "#url": "url",
+        },
+
         ExpressionAttributeValues: {
           ":content": item.content,
+          ":comment": item.comment ?? "",
+          ":url": item.url ?? "",
           ":updatedByDisplayName":
             item.updatedByDisplayName,
           ":updatedAt": item.updatedAt,

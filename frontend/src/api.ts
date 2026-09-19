@@ -8,7 +8,7 @@ export type Group = {
   createdAt: string;
 };
 
-export type WishItem = {
+export type WishItemSummary = {
   groupId: string;
   itemId: string;
   content: string;
@@ -17,6 +17,62 @@ export type WishItem = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type WishItem = WishItemSummary & {
+  comment: string;
+  url: string;
+};
+
+function normalizeWishItemResponse(
+  value: unknown,
+): WishItem {
+  if (typeof value !== "object" || value === null) {
+    throw new Error(
+      "やりたいことのデータ形式が正しくありません。",
+    );
+  }
+
+  const record = value as Record<string, unknown>;
+  const requiredStringFields = [
+    "groupId",
+    "itemId",
+    "content",
+    "createdByDisplayName",
+    "updatedByDisplayName",
+    "createdAt",
+    "updatedAt",
+  ] as const;
+
+  if (
+    requiredStringFields.some(
+      (field) => typeof record[field] !== "string",
+    )
+  ) {
+    throw new Error(
+      "やりたいことのデータ形式が正しくありません。",
+    );
+  }
+
+  return {
+    groupId: record.groupId as string,
+    itemId: record.itemId as string,
+    content: record.content as string,
+    comment:
+      typeof record.comment === "string"
+        ? record.comment
+        : "",
+    url:
+      typeof record.url === "string"
+        ? record.url
+        : "",
+    createdByDisplayName:
+      record.createdByDisplayName as string,
+    updatedByDisplayName:
+      record.updatedByDisplayName as string,
+    createdAt: record.createdAt as string,
+    updatedAt: record.updatedAt as string,
+  };
+}
 
 export type CreateGroupInput = {
   groupName: string;
@@ -33,11 +89,15 @@ export type CreateGroupResponse = {
 
 export type CreateWishItemInput = {
   content: string;
+  comment: string;
+  url: string;
   displayName: string;
 };
 
 export type UpdateWishItemInput = {
   content: string;
+  comment: string;
+  url: string;
   displayName: string;
 };
 
@@ -115,7 +175,7 @@ export async function getGroup(
 export async function getWishItems(
   groupId: string,
   accessToken: string,
-): Promise<WishItem[]> {
+): Promise<WishItemSummary[]> {
   const response = await fetch(
     `${API_BASE_URL}/groups/${encodeURIComponent(
       groupId,
@@ -137,10 +197,38 @@ export async function getWishItems(
   }
 
   const body: {
-    items: WishItem[];
+    items: WishItemSummary[];
   } = await response.json();
 
   return body.items;
+}
+
+export async function getWishItem(
+  groupId: string,
+  itemId: string,
+  accessToken: string,
+): Promise<WishItem> {
+  const response = await fetch(
+    `${API_BASE_URL}/groups/${encodeURIComponent(
+      groupId,
+    )}/items/${encodeURIComponent(itemId)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  return normalizeWishItemResponse(
+    await response.json(),
+  );
 }
 
 export async function createWishItem(
@@ -173,7 +261,9 @@ export async function createWishItem(
     );
   }
 
-  return response.json();
+  return normalizeWishItemResponse(
+    await response.json(),
+  );
 }
 
 export async function updateWishItem(
@@ -209,7 +299,9 @@ export async function updateWishItem(
     );
   }
 
-  return response.json();
+  return normalizeWishItemResponse(
+    await response.json(),
+  );
 }
 
 export async function deleteWishItem(

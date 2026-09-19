@@ -9,7 +9,7 @@ import { DynamoDbWishItemRepository } from "./dynamoDbWishItemRepository";
 import type { GroupRepository } from "./groupRepository";
 import type { WishItemRepository } from "./wishItemRepository";
 import {
-  toWishItemResponse,
+  toWishItemSummaryResponse,
 } from "./wishItemResponse.js";
 
 type Handler = (
@@ -118,7 +118,7 @@ export function createGetWishItemsHandler(
 
       const responseItems =
         items.map(
-          toWishItemResponse,
+          toWishItemSummaryResponse,
         );
 
       return createJsonResponse(200, {

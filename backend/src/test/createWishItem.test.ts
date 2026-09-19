@@ -15,6 +15,8 @@ describe("createWishItem", () => {
       const item = createWishItem({
         groupId: "group-001",
         content: "箱根に行く",
+        comment: "秋に行きたい",
+        url: "example.com/hakone",
         displayName: "こり",
       });
 
@@ -26,6 +28,14 @@ describe("createWishItem", () => {
 
       expect(item.content).toBe(
         "箱根に行く",
+      );
+
+      expect(item.comment).toBe(
+        "秋に行きたい",
+      );
+
+      expect(item.url).toBe(
+        "https://example.com/hakone",
       );
 
       expect(
@@ -93,6 +103,36 @@ describe("createWishItem", () => {
         }),
       ).toThrow(
         "表示名を入力してください",
+      );
+    },
+  );
+
+  it(
+    "コメントとURLを省略した場合は空文字になる",
+    () => {
+      const item = createWishItem({
+        groupId: "group-001",
+        content: "箱根に行く",
+        displayName: "こり",
+      });
+
+      expect(item.comment).toBe("");
+      expect(item.url).toBe("");
+    },
+  );
+
+  it(
+    "httpとhttps以外のURLはエラーになる",
+    () => {
+      expect(() =>
+        createWishItem({
+          groupId: "group-001",
+          content: "箱根に行く",
+          url: "javascript:alert(1)",
+          displayName: "こり",
+        }),
+      ).toThrow(
+        "httpまたはhttpsのURLを入力してください",
       );
     },
   );
