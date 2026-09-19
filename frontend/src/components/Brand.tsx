@@ -20,7 +20,7 @@ export function Brand({
         <span />
       </span>
       <span className="brand-name">
-        それ、しよ
+        Peace Wishlist
       </span>
     </div>
   );
