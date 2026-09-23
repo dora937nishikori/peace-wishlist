@@ -12,9 +12,9 @@ colors:
   line-strong: "#b9d3e6"
   accent: "#0d6eb8"
   accent-hover: "#075a99"
-  sky-light: "#bdeaff"
   sky: "#70c4f4"
-  sky-deep: "#3ca2e2"
+  sky-hover: "#61b9ec"
+  sky-active: "#55afe5"
   sky-ink: "#10344c"
   cloud: "#fafdff"
   error: "#913449"
@@ -28,7 +28,7 @@ typography:
   labelSize: "14px"
   metadataSize: "11px"
 rounded:
-  control: "13px"
+  control: "12px"
   input: "12px"
   panel: "16px"
   circle: "50%"
@@ -42,7 +42,7 @@ rounded:
 
 Peace Wishlist is an Operate-mode product used mainly from LINE on a phone. The interface should work before it is explained: visible labels, familiar icons, clear placement, and immediate feedback carry the interaction. Supporting text appears only when it changes a decision or helps recovery.
 
-The visual world comes from a clear blue sky with a small amount of white cloud. Pale blue is the page field, white is the working surface, deep blue-gray carries text, and the sky gradient identifies primary actions. The result should feel light and current, not childish, glossy, or corporate.
+The visual world comes from a clear blue sky with a small amount of white cloud. Pale blue is the page field, white is the working surface, deep blue-gray carries text, and a solid sky blue identifies primary actions. The result should feel light and current, not childish, glossy, or corporate.
 
 ## Copy policy
 
@@ -58,7 +58,7 @@ The visual world comes from a clear blue sky with a small amount of white cloud.
 
 - `canvas` is the calm pale-sky field used across all routes.
 - `surface` is reserved for forms, dialogs, menus, and the continuous list.
-- Primary buttons use a diagonal transition from cloud-white blue through `sky` to `sky-deep`. Their text is `sky-ink`, not white, so the button stays bright while retaining contrast.
+- Primary buttons use the solid `sky` color. Their text is `sky-ink`, not white, so the button stays bright while retaining contrast. Fine inset light and a soft shadow create texture without a gradient.
 - `accent` is used for links, focus, arrows, sharing controls, and small interactive details.
 - Destructive actions remain deep rose and never adopt the sky treatment.
 - Shadows are soft blue-gray and only communicate lift or persistence. Ordinary list rows remain flat.
@@ -79,7 +79,7 @@ Only user content and the creation promise may use large type. Instructional hea
 
 ### Buttons
 
-- Primary buttons are at least 46px high with a 13px radius, clear-sky gradient, one fine blue border, and a soft downward shadow.
+- Primary buttons are at least 44px high with a 12px radius, solid clear-sky color, a fine inset light, and a soft downward shadow.
 - Hover lifts the button by 1px and slightly increases saturation; active press moves it down and shortens the shadow.
 - Secondary buttons use cloud-white surfaces, blue text, a light blue border, and much less elevation.
 - Text buttons are transparent and blue. Icon-only controls stay at least 44×44px and always have an accessible name.
@@ -87,7 +87,7 @@ Only user content and the creation promise may use large type. Instructional hea
 
 ### Inputs
 
-Inputs remain white with a quiet blue-gray edge. Focus changes the 1px wrapper to a light-to-deep sky gradient and adds a translucent blue focus ring. Text fields remain at least 48px high. Labels are always visible; optional fields are marked `任意`.
+Inputs remain white with a quiet blue-gray edge. Focus changes the 1px wrapper to solid focus blue and adds a translucent blue focus ring. Text fields remain at least 48px high. Labels are always visible; optional fields are marked `任意`.
 
 ### Panels and lists
 
@@ -95,7 +95,7 @@ Create and join panels are white 16px surfaces with a soft blue shadow and no du
 
 ### Brand and icons
 
-The circular brand edge uses the sky gradient around a white center. Inline SVG icons use a consistent 24×24 view box, 1.8px rounded strokes, and current text color. Do not substitute emoji or miscellaneous icon styles.
+The circular brand edge uses solid sky blue around a white center. Inline SVG icons use a consistent 24×24 view box, 1.8px rounded strokes, and current text color. Do not substitute emoji or miscellaneous icon styles.
 
 ## Screen behavior
 
@@ -118,6 +118,6 @@ The circular brand edge uses the sky gradient around a white center. Inline SVG 
 ## Avoid
 
 - Explanatory subtitles that restate the screen or button.
-- Literal cloud illustrations, decorative blobs, gradient text, or highly glossy controls.
+- Gradients, literal cloud illustrations, decorative blobs, or highly glossy controls.
 - Pill-shaped primary actions, heavy shadows, glass effects, and card-per-item layouts.
 - Removing safety, privacy, permission, or recovery text merely to make a screen sparse.

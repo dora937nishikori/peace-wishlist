@@ -26,9 +26,9 @@
   --line-strong: #b9d3e6;
   --accent: #0d6eb8;
   --accent-hover: #075a99;
-  --sky-light: #bdeaff;
   --sky: #70c4f4;
-  --sky-deep: #3ca2e2;
+  --sky-hover: #61b9ec;
+  --sky-active: #55afe5;
   --sky-ink: #10344c;
   --cloud: #fafdff;
   --error: #913449;
@@ -117,7 +117,7 @@ a:focus-visible {
   padding: 1px;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, var(--sky-light), var(--sky-deep));
+  background: var(--sky);
   box-shadow: 0 4px 12px rgba(36, 142, 207, 0.16);
 }
 
@@ -149,8 +149,7 @@ a:focus-visible {
 .icon-button,
 .text-button {
   min-height: 44px;
-  min-height: 46px;
-  border-radius: 13px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 720;
   letter-spacing: 0.015em;
@@ -160,28 +159,25 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 11px 19px;
+  gap: 8px;
+  padding: 9px 15px;
   color: var(--sky-ink);
-  background: linear-gradient(
-    135deg,
-    #d8f3ff 0%,
-    var(--sky-light) 28%,
-    var(--sky) 68%,
-    var(--sky-deep) 100%
-  );
-  border: 1px solid #76c1ea;
-  box-shadow: 0 8px 20px rgba(37, 135, 195, 0.18);
+  background: var(--sky);
+  border: 1px solid transparent;
+  box-shadow:
+    0 7px 16px rgba(37, 135, 195, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
   transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .primary-button:hover:not(:disabled) {
+  background: var(--sky-hover);
   box-shadow:
-    0 11px 24px rgba(37, 135, 195, 0.24);
-  filter: saturate(1.06) brightness(1.02);
+    0 10px 20px rgba(37, 135, 195, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
   transform: translateY(-1px);
 }
 
@@ -192,8 +188,10 @@ a:focus-visible {
 }
 
 .primary-button:active:not(:disabled) {
+  background: var(--sky-active);
   box-shadow:
-    0 3px 9px rgba(37, 135, 195, 0.17);
+    0 3px 8px rgba(37, 135, 195, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .secondary-button {
@@ -203,11 +201,9 @@ a:focus-visible {
   gap: 9px;
   padding: 10px 14px;
   color: var(--accent);
-  background: linear-gradient(180deg, var(--cloud), #f2f9ff);
+  background: var(--surface);
   border: 1px solid #bdd9ec;
-  box-shadow:
-    0 4px 12px rgba(53, 122, 165, 0.08),
-    inset 0 1px 0 #fff;
+  box-shadow: inset 0 1px 0 #fff;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
@@ -218,7 +214,7 @@ a:focus-visible {
 .secondary-button:hover:not(:disabled) {
   background: #eaf6ff;
   border-color: #8dc6e8;
-  box-shadow: 0 6px 15px rgba(53, 122, 165, 0.12);
+  box-shadow: 0 5px 12px rgba(53, 122, 165, 0.1);
 }
 
 .text-button {
@@ -253,7 +249,7 @@ a:focus-visible {
 }
 
 .input-edge:focus-within {
-  background: linear-gradient(120deg, var(--sky-light), var(--sky-deep));
+  background: var(--focus);
   box-shadow: 0 0 0 3px rgba(22, 118, 188, 0.16);
 }
 
@@ -412,13 +408,7 @@ a:focus-visible {
   left: 24px;
   height: 1px;
   content: "";
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--sky-light),
-    var(--sky-deep),
-    transparent
-  );
+  background: var(--sky);
 }
 
 .panel-heading h2 {
@@ -619,7 +609,7 @@ a:focus-visible {
 
 .profile-menu summary {
   color: var(--sky-ink);
-  background: linear-gradient(145deg, #d8f3ff, var(--sky), var(--sky-deep));
+  background: var(--sky);
   border: 1px solid #72bde8;
   box-shadow: 0 6px 16px rgba(37, 135, 195, 0.16);
   font-size: 14px;
@@ -719,7 +709,9 @@ a:focus-visible {
 }
 
 .add-launch-button {
-  min-width: 108px;
+  min-width: 0;
+  padding-right: 14px;
+  padding-left: 14px;
 }
 
 .list-heading {
@@ -961,11 +953,6 @@ a:focus-visible {
   background: var(--surface-soft);
 }
 
-.add-url-button {
-  grid-column: 1 / -1;
-  justify-self: start;
-}
-
 .item-form-error {
   margin-top: -7px;
 }
@@ -977,7 +964,9 @@ a:focus-visible {
 }
 
 .item-save-actions .primary-button {
-  min-width: 136px;
+  min-width: 0;
+  padding-right: 16px;
+  padding-left: 16px;
 }
 
 .item-danger-zone {
@@ -1039,7 +1028,7 @@ a:focus-visible {
   padding: 1px;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, var(--sky-light), var(--sky-deep));
+  background: var(--sky);
   box-shadow: 0 8px 22px rgba(37, 135, 195, 0.15);
 }
 
@@ -1081,7 +1070,7 @@ a:focus-visible {
   max-width: min(380px, calc(100vw - 40px));
   padding: 13px 16px;
   color: var(--sky-ink);
-  background: linear-gradient(140deg, #d8f3ff, var(--sky-light), var(--sky));
+  background: var(--sky);
   border: 1px solid #70bce8;
   border-radius: 13px;
   box-shadow: 0 12px 28px rgba(37, 105, 148, 0.18);
@@ -1258,7 +1247,7 @@ a:focus-visible {
   }
 
   .add-launch .primary-button {
-    width: 100%;
+    width: auto;
   }
 
   .wish-row {
@@ -1306,7 +1295,7 @@ a:focus-visible {
   }
 
   .item-save-actions .primary-button {
-    width: 100%;
+    width: auto;
   }
 
   .item-delete-confirmation {

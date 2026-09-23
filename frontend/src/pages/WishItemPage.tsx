@@ -138,7 +138,7 @@ function WishItemPage() {
         };
         setFields(loadedFields);
         setInitialFields(loadedFields);
-        setUrlEditing(false);
+        setUrlEditing(!loadedFields.url);
       }
     } catch (caughtError) {
       console.error(caughtError);
@@ -237,7 +237,7 @@ function WishItemPage() {
       };
       setFields(savedFields);
       setInitialFields(savedFields);
-      setUrlEditing(false);
+      setUrlEditing(!savedFields.url);
 
       if (isNew) {
         skipBlock.current = true;
@@ -429,7 +429,7 @@ function WishItemPage() {
               <span className="optional-label">任意</span>
             </span>
 
-            {urlEditing ? (
+            {urlEditing || !fields.url ? (
               <div className="url-editor">
                 <span className="input-edge">
                   <input
@@ -449,7 +449,7 @@ function WishItemPage() {
                     aria-invalid={Boolean(formError)}
                   />
                 </span>
-                {!isNew && (
+                {!isNew && Boolean(initialFields.url) && (
                   <button
                     type="button"
                     className="text-button url-cancel"
@@ -465,7 +465,7 @@ function WishItemPage() {
                   </button>
                 )}
               </div>
-            ) : fields.url ? (
+            ) : (
               <div className="url-display">
                 <a
                   href={fields.url}
@@ -483,14 +483,6 @@ function WishItemPage() {
                   <Icon name="edit" />
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                className="secondary-button add-url-button"
-                onClick={() => setUrlEditing(true)}
-              >
-                URLを追加
-              </button>
             )}
           </div>
 
