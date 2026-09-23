@@ -6,6 +6,7 @@ import {
   PutCommand,
   QueryCommand,
   UpdateCommand,
+  type UpdateCommandInput,
 } from "@aws-sdk/lib-dynamodb";
 
 import type { WishItem } from "./createWishItem";
@@ -24,6 +25,51 @@ const documentClient =
       },
     },
   );
+
+export function createWishItemUpdateInput(
+  tableName: string,
+  item: WishItem,
+): UpdateCommandInput {
+  return {
+    TableName: tableName,
+
+    Key: {
+      groupId: item.groupId,
+      itemId: item.itemId,
+    },
+
+    UpdateExpression: `
+      SET #content = :content,
+          #comment = :comment,
+          #url = :url,
+          #updatedByDisplayName = :updatedByDisplayName,
+          #updatedAt = :updatedAt
+    `,
+
+    ExpressionAttributeNames: {
+      "#groupId": "groupId",
+      "#itemId": "itemId",
+      "#content": "content",
+      "#comment": "comment",
+      "#url": "url",
+      "#updatedByDisplayName":
+        "updatedByDisplayName",
+      "#updatedAt": "updatedAt",
+    },
+
+    ExpressionAttributeValues: {
+      ":content": item.content,
+      ":comment": item.comment ?? "",
+      ":url": item.url ?? "",
+      ":updatedByDisplayName":
+        item.updatedByDisplayName,
+      ":updatedAt": item.updatedAt,
+    },
+
+    ConditionExpression:
+      "attribute_exists(#groupId) AND attribute_exists(#itemId)",
+  };
+}
 
 export class DynamoDbWishItemRepository
   implements WishItemRepository
@@ -72,38 +118,12 @@ export class DynamoDbWishItemRepository
     item: WishItem,
   ): Promise<void> {
     await documentClient.send(
-      new UpdateCommand({
-        TableName: this.tableName,
-
-        Key: {
-          groupId: item.groupId,
-          itemId: item.itemId,
-        },
-
-        UpdateExpression: `
-          SET content = :content,
-              comment = :comment,
-              #url = :url,
-              updatedByDisplayName = :updatedByDisplayName,
-              updatedAt = :updatedAt
-        `,
-
-        ExpressionAttributeNames: {
-          "#url": "url",
-        },
-
-        ExpressionAttributeValues: {
-          ":content": item.content,
-          ":comment": item.comment ?? "",
-          ":url": item.url ?? "",
-          ":updatedByDisplayName":
-            item.updatedByDisplayName,
-          ":updatedAt": item.updatedAt,
-        },
-
-        ConditionExpression:
-          "attribute_exists(groupId) AND attribute_exists(itemId)",
-      }),
+      new UpdateCommand(
+        createWishItemUpdateInput(
+          this.tableName,
+          item,
+        ),
+      ),
     );
   }
 
