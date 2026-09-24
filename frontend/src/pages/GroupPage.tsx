@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import {
+  Link,
   useLocation,
   useNavigate,
   useParams,
@@ -416,6 +417,28 @@ function GroupPage() {
                 リストに参加する
                 <Icon name="arrow-right" />
               </button>
+
+              <p className="legal-consent">
+                参加すると、
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="利用規約（新しいタブで開く）"
+                >
+                  利用規約
+                </Link>
+                と
+                <Link
+                  to="/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="プライバシーポリシー（新しいタブで開く）"
+                >
+                  プライバシーポリシー
+                </Link>
+                に同意したものとみなします。
+              </p>
             </form>
           </section>
           <p className="join-note">
