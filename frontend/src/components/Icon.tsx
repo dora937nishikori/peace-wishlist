@@ -6,6 +6,12 @@ type IconName =
   | "more"
   | "plus"
   | "share"
+  | "check"
+  | "photo"
+  | "link"
+  | "external"
+  | "undo"
+  | "home"
   | "trash";
 
 type IconProps = {
@@ -13,11 +19,43 @@ type IconProps = {
   size?: number;
 };
 
-export function Icon({
-  name,
-  size = 20,
-}: IconProps) {
+export function Icon({ name, size = 20 }: IconProps) {
   const paths = {
+    check: <path d="m5 12 4 4L19 6" />,
+    photo: (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8" cy="8" r="1.5" />
+        <path d="m21 15-5-5L5 21" />
+      </>
+    ),
+    link: (
+      <>
+        <path d="m10 13 4-4" />
+        <path
+          d="m8 16-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"
+          transform="translate(1 -1) scale(.9)"
+        />
+      </>
+    ),
+    external: (
+      <>
+        <path d="M14 3h7v7M21 3 10 14" />
+        <path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5" />
+      </>
+    ),
+    undo: (
+      <>
+        <path d="M3 10h11a6 6 0 0 1 0 12" transform="translate(0 -2)" />
+        <path d="m8 3-5 5 5 5" />
+      </>
+    ),
+    home: (
+      <>
+        <path d="m3 10 9-7 9 7v10H3Z" />
+        <path d="M9 20v-7h6v7" />
+      </>
+    ),
     "arrow-left": (
       <>
         <path d="M19 12H5" />

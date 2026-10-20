@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Photo } from "./photoStore";
 
 import {
   normalizeWishItemFields,
@@ -9,6 +10,7 @@ export type CreateWishItemInput = {
   content: string;
   comment?: string;
   url?: string;
+  coverImageUrl?: string;
   displayName: string;
 };
 
@@ -18,6 +20,10 @@ export type WishItem = {
   content: string;
   comment?: string;
   url?: string;
+  coverImageUrl?: string;
+  status?: "wish" | "memory";
+  completedAt?: string;
+  photos?: Photo[];
   createdByDisplayName: string;
   updatedByDisplayName: string;
   createdAt: string;
@@ -44,6 +50,9 @@ export function createWishItem(
     groupId: input.groupId,
     itemId,
     ...fields,
+    status: "wish",
+    completedAt: "",
+    photos: [],
     createdByDisplayName: displayName,
     updatedByDisplayName: displayName,
     createdAt: now,

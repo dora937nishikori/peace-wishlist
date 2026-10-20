@@ -1,3 +1,5 @@
+import { S3PhotoStore, type PhotoStore } from "./photoStore";
+import { presentItem, presentSummary } from "./wishItemResponse";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
@@ -51,6 +53,7 @@ function extractBearerToken(
 export function createGetWishItemsHandler(
   groupRepository: GroupRepository,
   wishItemRepository: WishItemRepository,
+  photoStore: PhotoStore | undefined = process.env.PHOTOS_BUCKET_NAME ? new S3PhotoStore(process.env.PHOTOS_BUCKET_NAME) : undefined,
 ): Handler {
   return async (
     event: APIGatewayProxyEventV2,
@@ -117,9 +120,7 @@ export function createGetWishItemsHandler(
         );
 
       const responseItems =
-        items.map(
-          toWishItemSummaryResponse,
-        );
+        await Promise.all(items.map((item) => presentSummary(item, photoStore)));
 
       return createJsonResponse(200, {
         items: responseItems,

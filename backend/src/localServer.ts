@@ -1,397 +1,286 @@
+import { createServer, type IncomingMessage } from "node:http";
+import { randomUUID } from "node:crypto";
+import type { APIGatewayProxyEventV2 } from "aws-lambda";
+import type { Group } from "./createGroup";
+import type { WishItem } from "./createWishItem";
+import type { GroupRepository } from "./groupRepository";
+import type { WishItemRepository } from "./wishItemRepository";
+import { createGroupHandler } from "./createGroupHandler";
+import { createGetGroupHandler } from "./getGroupHandler";
+import { createWishItemHandler } from "./createWishItemHandler";
+import { createGetWishItemsHandler } from "./getWishItemsHandler";
+import { createGetWishItemHandler } from "./getWishItemHandler";
+import { createUpdateWishItemHandler } from "./updateWishItemHandler";
+import { createDeleteWishItemHandler } from "./deleteWishItemHandler";
+import { createLinkPreviewHandler } from "./linkPreviewHandler";
+import { createPhotosHandler } from "./photosHandler";
 import {
-  createServer,
-  type IncomingMessage,
-  type ServerResponse,
-} from "node:http";
+  MAX_PHOTO_BYTES,
+  validatePhoto,
+  type PhotoStore,
+  type Upload,
+} from "./photoStore";
+import { HttpError, json, type Handler } from "./http";
 
-import {
-  verifyAccessToken,
-} from "./accessToken";
-import {
-  createGroup,
-  type Group,
-} from "./createGroup";
-import {
-  createWishItem,
-  type WishItem,
-} from "./createWishItem";
-import {
-  updateWishItem,
-} from "./updateWishItem";
-import {
-  toWishItemResponse,
-  toWishItemSummaryResponse,
-} from "./wishItemResponse";
+const port = Number(process.env.LOCAL_API_PORT || 4174);
+const origin = `http://127.0.0.1:${port}`;
+const groupData = new Map<string, Group>();
+const itemData = new Map<string, WishItem>();
+const groups: GroupRepository = {
+  async save(group) {
+    groupData.set(group.groupId, group);
+  },
+  async findById(id) {
+    return groupData.get(id) ?? null;
+  },
+};
+const itemKey = (groupId: string, itemId: string) => `${groupId}/${itemId}`;
+const items: WishItemRepository = {
+  async save(item) {
+    itemData.set(itemKey(item.groupId, item.itemId), item);
+  },
+  async findById(groupId, itemId) {
+    return itemData.get(itemKey(groupId, itemId)) ?? null;
+  },
+  async findByGroupId(groupId) {
+    return [...itemData.values()]
+      .filter((item) => item.groupId === groupId)
+      .sort((a, b) => b.createdAtItemId.localeCompare(a.createdAtItemId));
+  },
+  async update(item, expectedUpdatedAt) {
+    const old = itemData.get(itemKey(item.groupId, item.itemId));
+    if (!old || (expectedUpdatedAt && old.updatedAt !== expectedUpdatedAt)) {
+      const error = new Error("conflict");
+      error.name = "ConditionalCheckFailedException";
+      throw error;
+    }
+    itemData.set(itemKey(item.groupId, item.itemId), item);
+  },
+  async delete(groupId, itemId) {
+    itemData.delete(itemKey(groupId, itemId));
+  },
+};
 
-const DEFAULT_PORT = 4174;
-const MAX_BODY_BYTES = 1024 * 1024;
+type StoredPhoto = { bytes: Buffer; type: string };
+const photoData = new Map<string, StoredPhoto>();
+const uploads = new Map<
+  string,
+  { key: string; type: string; expires: number }
+>();
+const downloads = new Map<string, { key: string; expires: number }>();
+const photoStore: PhotoStore = {
+  async createUpload(groupId, itemId, contentType): Promise<Upload> {
+    const token = randomUUID();
+    const key = `uploads/${groupId}/${itemId}/${randomUUID()}`;
+    uploads.set(token, {
+      key,
+      type: contentType,
+      expires: Date.now() + 300000,
+    });
+    return {
+      key,
+      url: `${origin}/local-uploads/${token}`,
+      method: "PUT",
+      fields: {},
+    };
+  },
+  async commit(key) {
+    const photo = photoData.get(key);
+    if (!photo) throw new HttpError(400, "写真をもう一度選んでください");
+    validatePhoto(photo.bytes, photo.type);
+    const finalKey = key
+      .replace(/^uploads\//, "photos/")
+      .replace(/[^/]+$/, randomUUID());
+    photoData.set(finalKey, photo);
+    return finalKey;
+  },
+  async url(key) {
+    const token = randomUUID();
+    downloads.set(token, { key, expires: Date.now() + 3600000 });
+    return `${origin}/local-photos/${token}`;
+  },
+  async delete(key) {
+    photoData.delete(key);
+  },
+};
 
-const groups = new Map<string, Group>();
-const wishItems = new Map<string, Map<string, WishItem>>();
+const handlers: Record<string, Handler> = {
+  "POST /groups": createGroupHandler(groups),
+  "GET /groups/:group": createGetGroupHandler(groups),
+  "POST /groups/:group/link-preview": createLinkPreviewHandler(groups),
+  "POST /groups/:group/items": createWishItemHandler(groups, items, photoStore),
+  "GET /groups/:group/items": createGetWishItemsHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+  "GET /groups/:group/items/:item": createGetWishItemHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+  "PATCH /groups/:group/items/:item": createUpdateWishItemHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+  "DELETE /groups/:group/items/:item": createDeleteWishItemHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+  "POST /groups/:group/items/:item/photos/upload": createPhotosHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+  "POST /groups/:group/items/:item/photos": createPhotosHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+  "DELETE /groups/:group/items/:item/photos/:photo": createPhotosHandler(
+    groups,
+    items,
+    photoStore,
+  ),
+};
 
-function setCorsHeaders(response: ServerResponse): void {
-  response.setHeader("access-control-allow-origin", "*");
+async function readBytes(
+  request: IncomingMessage,
+  limit: number,
+): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let length = 0;
+  for await (const chunk of request) {
+    length += chunk.length;
+    if (length > limit) throw new HttpError(413, "ファイルが大きすぎます");
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+const server = createServer((request, response) => {
+  response.setHeader("access-control-allow-origin", "http://localhost:5173");
   response.setHeader(
     "access-control-allow-headers",
     "authorization, content-type",
   );
   response.setHeader(
     "access-control-allow-methods",
-    "GET, POST, PATCH, DELETE, OPTIONS",
+    "GET, POST, PATCH, PUT, DELETE, OPTIONS",
   );
-}
-
-function sendJson(
-  response: ServerResponse,
-  statusCode: number,
-  body: object,
-): void {
-  setCorsHeaders(response);
-  response.writeHead(statusCode, {
-    "content-type": "application/json; charset=utf-8",
-  });
-  response.end(JSON.stringify(body));
-}
-
-function sendEmpty(
-  response: ServerResponse,
-  statusCode: number,
-): void {
-  setCorsHeaders(response);
-  response.writeHead(statusCode);
-  response.end();
-}
-
-async function readJson(
-  request: IncomingMessage,
-): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  let totalBytes = 0;
-
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk)
-      ? chunk
-      : Buffer.from(chunk);
-    totalBytes += buffer.length;
-
-    if (totalBytes > MAX_BODY_BYTES) {
-      throw new Error("リクエストが大きすぎます");
-    }
-
-    chunks.push(buffer);
-  }
-
-  if (chunks.length === 0) {
-    throw new Error("リクエストボディが必要です");
-  }
-
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  } catch {
-    throw new Error("JSONの形式が正しくありません");
-  }
-}
-
-function asRecord(
-  value: unknown,
-): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function extractBearerToken(
-  request: IncomingMessage,
-): string | null {
-  const authorization = request.headers.authorization;
-  if (!authorization) return null;
-
-  const [scheme, token] = authorization.split(" ");
-  return scheme?.toLowerCase() === "bearer" && token
-    ? token
-    : null;
-}
-
-function authorize(
-  request: IncomingMessage,
-  response: ServerResponse,
-  groupId: string,
-): Group | null {
-  const group = groups.get(groupId);
-
-  if (!group) {
-    sendJson(response, 404, {
-      message: "グループが見つかりません",
-    });
-    return null;
-  }
-
-  const accessToken = extractBearerToken(request);
-
-  if (
-    !accessToken ||
-    !verifyAccessToken(
-      accessToken,
-      group.accessTokenHash,
-    )
-  ) {
-    sendJson(response, 401, {
-      message: "アクセストークンが正しくありません",
-    });
-    return null;
-  }
-
-  return group;
-}
-
-function getPathSegments(request: IncomingMessage): string[] {
-  const url = new URL(
-    request.url ?? "/",
-    "http://127.0.0.1",
-  );
-
-  return url.pathname
-    .split("/")
-    .filter(Boolean)
-    .map(decodeURIComponent);
-}
-
-async function handleRequest(
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<void> {
-  if (request.method === "OPTIONS") {
-    sendEmpty(response, 204);
-    return;
-  }
-
-  const segments = getPathSegments(request);
-
-  if (
-    request.method === "POST" &&
-    segments.length === 1 &&
-    segments[0] === "groups"
-  ) {
-    const record = asRecord(await readJson(request));
-
-    if (
-      !record ||
-      typeof record.groupName !== "string" ||
-      typeof record.createdByDisplayName !== "string"
-    ) {
-      sendJson(response, 400, {
-        message: "グループ名と表示名を入力してください",
-      });
+  response.setHeader("cache-control", "no-store");
+  void (async () => {
+    if (request.method === "OPTIONS") {
+      response.writeHead(204);
+      response.end();
       return;
     }
-
-    const result = createGroup({
-      groupName: record.groupName,
-      createdByDisplayName: record.createdByDisplayName,
-    });
-    groups.set(result.group.groupId, result.group);
-    wishItems.set(result.group.groupId, new Map());
-
-    sendJson(response, 201, {
-      groupId: result.group.groupId,
-      groupName: result.group.groupName,
-      createdByDisplayName:
-        result.group.createdByDisplayName,
-      createdAt: result.group.createdAt,
-      accessToken: result.accessToken,
-    });
-    return;
-  }
-
-  if (
-    segments[0] !== "groups" ||
-    !segments[1]
-  ) {
-    sendJson(response, 404, {
-      message: "APIが見つかりません",
-    });
-    return;
-  }
-
-  const groupId = segments[1];
-  const group = authorize(
-    request,
-    response,
-    groupId,
-  );
-  if (!group) return;
-
-  if (
-    request.method === "GET" &&
-    segments.length === 2
-  ) {
-    sendJson(response, 200, {
-      groupId: group.groupId,
-      groupName: group.groupName,
-      createdByDisplayName:
-        group.createdByDisplayName,
-      createdAt: group.createdAt,
-    });
-    return;
-  }
-
-  if (
-    segments[2] !== "items"
-  ) {
-    sendJson(response, 404, {
-      message: "APIが見つかりません",
-    });
-    return;
-  }
-
-  const groupItems = wishItems.get(groupId) ?? new Map();
-
-  if (
-    request.method === "GET" &&
-    segments.length === 3
-  ) {
-    const items = [...groupItems.values()]
-      .sort((left, right) =>
-        right.createdAtItemId.localeCompare(
-          left.createdAtItemId,
-        ),
+    const path = new URL(request.url ?? "/", origin).pathname;
+    const segments = path.split("/").filter(Boolean).map(decodeURIComponent);
+    if (segments[0] === "local-uploads" && request.method === "PUT") {
+      const upload = uploads.get(segments[1]);
+      if (!upload || upload.expires < Date.now())
+        throw new HttpError(403, "アップロードの有効期限が切れました");
+      const bytes = await readBytes(request, MAX_PHOTO_BYTES);
+      validatePhoto(bytes, upload.type);
+      photoData.set(upload.key, { bytes, type: upload.type });
+      uploads.delete(segments[1]);
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (segments[0] === "local-photos" && request.method === "GET") {
+      const download = downloads.get(segments[1]);
+      const photo =
+        download && download.expires > Date.now()
+          ? photoData.get(download.key)
+          : undefined;
+      if (!photo) throw new HttpError(404, "写真が見つかりません");
+      response.writeHead(200, {
+        "content-type": photo.type,
+        "x-content-type-options": "nosniff",
+      });
+      response.end(photo.bytes);
+      return;
+    }
+    const pattern = segments
+      .map((segment, index) =>
+        index === 1
+          ? ":group"
+          : index === 3
+            ? ":item"
+            : index === 5 && segment !== "upload"
+              ? ":photo"
+              : segment,
       )
-      .map(toWishItemSummaryResponse);
-
-    sendJson(response, 200, { items });
-    return;
-  }
-
-  if (
-    request.method === "POST" &&
-    segments.length === 3
-  ) {
-    const record = asRecord(await readJson(request));
-
-    if (
-      !record ||
-      typeof record.content !== "string" ||
-      typeof record.displayName !== "string" ||
-      (record.comment !== undefined &&
-        typeof record.comment !== "string") ||
-      (record.url !== undefined &&
-        typeof record.url !== "string")
-    ) {
-      sendJson(response, 400, {
-        message: "入力内容が正しくありません",
-      });
-      return;
-    }
-
-    const item = createWishItem({
-      groupId,
-      content: record.content,
-      comment: record.comment as string | undefined,
-      url: record.url as string | undefined,
-      displayName: record.displayName,
-    });
-    groupItems.set(item.itemId, item);
-    wishItems.set(groupId, groupItems);
-
-    sendJson(response, 201, toWishItemResponse(item));
-    return;
-  }
-
-  const itemId = segments[3];
-  const item = itemId ? groupItems.get(itemId) : null;
-
-  if (!item || segments.length !== 4) {
-    sendJson(response, 404, {
-      message: "やりたいことが見つかりません",
-    });
-    return;
-  }
-
-  if (request.method === "GET") {
-    sendJson(response, 200, toWishItemResponse(item));
-    return;
-  }
-
-  if (request.method === "PATCH") {
-    const record = asRecord(await readJson(request));
-
-    if (
-      !record ||
-      typeof record.content !== "string" ||
-      typeof record.displayName !== "string" ||
-      (record.comment !== undefined &&
-        typeof record.comment !== "string") ||
-      (record.url !== undefined &&
-        typeof record.url !== "string")
-    ) {
-      sendJson(response, 400, {
-        message: "入力内容が正しくありません",
-      });
-      return;
-    }
-
-    const updatedItem = updateWishItem({
-      item,
-      content: record.content,
-      comment: record.comment as string | undefined,
-      url: record.url as string | undefined,
-      displayName: record.displayName,
-    });
-    groupItems.set(itemId, updatedItem);
-
-    sendJson(
-      response,
-      200,
-      toWishItemResponse(updatedItem),
+      .join("/");
+    const route = `${request.method} /${pattern}`;
+    const handler = handlers[route];
+    if (!handler) throw new HttpError(404, "APIが見つかりません");
+    const event = {
+      version: "2.0",
+      routeKey: route,
+      rawPath: path,
+      rawQueryString: "",
+      headers: Object.fromEntries(
+        Object.entries(request.headers).map(([key, value]) => [
+          key,
+          Array.isArray(value) ? value.join(",") : value,
+        ]),
+      ),
+      pathParameters: {
+        groupId: segments[1],
+        itemId: segments[3],
+        photoId: segments[5],
+      },
+      requestContext: {
+        accountId: "local",
+        apiId: "local",
+        domainName: "localhost",
+        domainPrefix: "local",
+        requestId: randomUUID(),
+        routeKey: route,
+        stage: "$default",
+        time: new Date().toISOString(),
+        timeEpoch: Date.now(),
+        http: {
+          method: request.method ?? "GET",
+          path,
+          protocol: "HTTP/1.1",
+          sourceIp: "127.0.0.1",
+          userAgent: "local",
+        },
+      },
+      body: (await readBytes(request, 1024 * 1024)).toString("utf8"),
+      isBase64Encoded: false,
+    } as APIGatewayProxyEventV2;
+    const result = await handler(event);
+    response.writeHead(
+      result.statusCode ?? 200,
+      result.headers as Record<string, string>,
     );
-    return;
-  }
-
-  if (request.method === "DELETE") {
-    groupItems.delete(itemId);
-    sendEmpty(response, 204);
-    return;
-  }
-
-  sendJson(response, 405, {
-    message: "この操作には対応していません",
-  });
-}
-
-const configuredPort = Number.parseInt(
-  process.env.LOCAL_API_PORT ?? "",
-  10,
-);
-const port = Number.isInteger(configuredPort)
-  ? configuredPort
-  : DEFAULT_PORT;
-
-const server = createServer((request, response) => {
-  void handleRequest(request, response).catch((error) => {
-    if (error instanceof Error) {
-      sendJson(response, 400, {
-        message: error.message,
-      });
-      return;
-    }
-
-    console.error(error);
-    sendJson(response, 500, {
-      message: "ローカルAPIでエラーが発生しました",
+    response.end(result.body ?? "");
+  })().catch((error) => {
+    const result = json(error instanceof HttpError ? error.statusCode : 500, {
+      message:
+        error instanceof HttpError
+          ? error.message
+          : "ローカルAPIでエラーが発生しました",
     });
+    if (!(error instanceof HttpError)) console.error(error);
+    response.writeHead(
+      result.statusCode!,
+      result.headers as Record<string, string>,
+    );
+    response.end(result.body);
   });
 });
-
-server.listen(port, "127.0.0.1", () => {
+server.listen(port, "127.0.0.1", () =>
   console.log(
-    `Peace Wishlist local API: http://127.0.0.1:${port}`,
-  );
-  console.log("データはプロセス終了時に消去されます。");
-});
-
-function closeServer(): void {
-  server.close(() => process.exit(0));
-}
-
-process.on("SIGINT", closeServer);
-process.on("SIGTERM", closeServer);
+    `Peace Wishlist local API: ${origin}\n写真を含むデータはプロセス終了時に消去されます。`,
+  ),
+);
+process.on("SIGINT", () => server.close(() => process.exit(0)));
+process.on("SIGTERM", () => server.close(() => process.exit(0)));

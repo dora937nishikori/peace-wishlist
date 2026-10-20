@@ -29,6 +29,7 @@ const documentClient =
 export function createWishItemUpdateInput(
   tableName: string,
   item: WishItem,
+  expectedUpdatedAt?: string,
 ): UpdateCommandInput {
   return {
     TableName: tableName,
@@ -42,6 +43,10 @@ export function createWishItemUpdateInput(
       SET #content = :content,
           #comment = :comment,
           #url = :url,
+          #coverImageUrl = :coverImageUrl,
+          #status = :status,
+          #completedAt = :completedAt,
+          #photos = :photos,
           #updatedByDisplayName = :updatedByDisplayName,
           #updatedAt = :updatedAt
     `,
@@ -52,6 +57,10 @@ export function createWishItemUpdateInput(
       "#content": "content",
       "#comment": "comment",
       "#url": "url",
+      "#coverImageUrl": "coverImageUrl",
+      "#status": "status",
+      "#completedAt": "completedAt",
+      "#photos": "photos",
       "#updatedByDisplayName":
         "updatedByDisplayName",
       "#updatedAt": "updatedAt",
@@ -61,13 +70,19 @@ export function createWishItemUpdateInput(
       ":content": item.content,
       ":comment": item.comment ?? "",
       ":url": item.url ?? "",
+      ":coverImageUrl": item.coverImageUrl ?? "",
+      ":status": item.status ?? "wish",
+      ":completedAt": item.completedAt ?? "",
+      ":photos": item.photos ?? [],
+      ...(expectedUpdatedAt ? { ":expectedUpdatedAt": expectedUpdatedAt } : {}),
       ":updatedByDisplayName":
         item.updatedByDisplayName,
       ":updatedAt": item.updatedAt,
     },
 
     ConditionExpression:
-      "attribute_exists(#groupId) AND attribute_exists(#itemId)",
+      "attribute_exists(#groupId) AND attribute_exists(#itemId)" +
+      (expectedUpdatedAt ? " AND #updatedAt = :expectedUpdatedAt" : ""),
   };
 }
 
@@ -116,12 +131,14 @@ export class DynamoDbWishItemRepository
 
   async update(
     item: WishItem,
+    expectedUpdatedAt?: string,
   ): Promise<void> {
     await documentClient.send(
       new UpdateCommand(
         createWishItemUpdateInput(
           this.tableName,
           item,
+          expectedUpdatedAt,
         ),
       ),
     );
@@ -134,6 +151,7 @@ export class DynamoDbWishItemRepository
     const response =
       await documentClient.send(
         new GetCommand({
+          ConsistentRead: true,
           TableName: this.tableName,
           Key: {
             groupId,

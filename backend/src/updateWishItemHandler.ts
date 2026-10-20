@@ -1,3 +1,5 @@
+import { S3PhotoStore, type PhotoStore } from "./photoStore";
+import { presentItem, presentSummary } from "./wishItemResponse";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
@@ -78,6 +80,10 @@ function isUpdateInput(
   comment?: string;
   url?: string;
   displayName: string;
+  coverImageUrl?: string;
+  status?: "wish" | "memory";
+  completedAt?: string;
+  expectedUpdatedAt?: string;
 } {
   if (
     typeof value !== "object" ||
@@ -100,7 +106,11 @@ function isUpdateInput(
     (record.comment === undefined ||
       typeof record.comment === "string") &&
     (record.url === undefined ||
-      typeof record.url === "string")
+      typeof record.url === "string") &&
+    (record.coverImageUrl === undefined || typeof record.coverImageUrl === "string") &&
+    (record.status === undefined || record.status === "wish" || record.status === "memory") &&
+    (record.completedAt === undefined || typeof record.completedAt === "string") &&
+    (record.expectedUpdatedAt === undefined || typeof record.expectedUpdatedAt === "string")
   );
 }
 
@@ -109,6 +119,7 @@ export function createUpdateWishItemHandler(
     GroupRepository,
   wishItemRepository:
     WishItemRepository,
+  photoStore: PhotoStore | undefined = process.env.PHOTOS_BUCKET_NAME ? new S3PhotoStore(process.env.PHOTOS_BUCKET_NAME) : undefined,
 ): Handler {
   return async (
     event:
@@ -241,6 +252,7 @@ export function createUpdateWishItemHandler(
     try {
       updatedItem =
         updateWishItem({
+          ...requestBody,
           item:
             existingItem,
           content:
@@ -279,8 +291,12 @@ export function createUpdateWishItemHandler(
       await wishItemRepository
         .update(
           updatedItem,
+          requestBody.expectedUpdatedAt ?? existingItem.updatedAt,
         );
     } catch (error) {
+      if (error instanceof Error && error.name === "ConditionalCheckFailedException") {
+        return createJsonResponse(409, { message: "ほかのメンバーが更新しました。読み込み直してからお試しください" });
+      }
       console.error(
         "やりたいことの更新に失敗しました",
         error,
@@ -297,7 +313,7 @@ export function createUpdateWishItemHandler(
 
     return createJsonResponse(
       200,
-      toWishItemResponse(updatedItem),
+      await presentItem(updatedItem, photoStore),
     );
   };
 }

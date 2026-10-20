@@ -1,3 +1,5 @@
+import { S3PhotoStore, type PhotoStore } from "./photoStore";
+import { presentItem, presentSummary } from "./wishItemResponse";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
@@ -80,13 +82,18 @@ function isCreateWishItemInput(
     (record.comment === undefined ||
       typeof record.comment === "string") &&
     (record.url === undefined ||
-      typeof record.url === "string")
+      typeof record.url === "string") &&
+    (record.coverImageUrl === undefined || typeof record.coverImageUrl === "string") &&
+    (record.status === undefined || record.status === "wish" || record.status === "memory") &&
+    (record.completedAt === undefined || typeof record.completedAt === "string") &&
+    (record.expectedUpdatedAt === undefined || typeof record.expectedUpdatedAt === "string")
   );
 }
 
 export function createWishItemHandler(
   groupRepository: GroupRepository,
   wishItemRepository: WishItemRepository,
+  photoStore: PhotoStore | undefined = process.env.PHOTOS_BUCKET_NAME ? new S3PhotoStore(process.env.PHOTOS_BUCKET_NAME) : undefined,
 ): Handler {
   return async (
     event: APIGatewayProxyEventV2,
@@ -210,7 +217,7 @@ export function createWishItemHandler(
       });
     }
 
-    return createJsonResponse(201, toWishItemResponse(item));
+    return createJsonResponse(201, await presentItem(item, photoStore));
   };
 }
 

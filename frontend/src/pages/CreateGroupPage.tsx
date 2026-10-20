@@ -1,24 +1,27 @@
-import {
-  useState,
-  type FormEvent,
-} from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { createGroup } from "../api";
 import { Brand } from "../components/Brand";
 import { Icon } from "../components/Icon";
-import { saveDisplayName } from "../storage";
+import {
+  saveDisplayName,
+  getRecentGroups,
+  forgetGroup,
+  recentGroupUrl,
+  rememberGroup,
+} from "../storage";
 
 function CreateGroupPage() {
   const navigate = useNavigate();
+  const [recentGroups, setRecentGroups] = useState(getRecentGroups);
+  const [showCreate, setShowCreate] = useState(recentGroups.length === 0);
   const [groupName, setGroupName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
 
@@ -42,10 +45,8 @@ function CreateGroupPage() {
         createdByDisplayName: trimmedDisplayName,
       });
 
-      saveDisplayName(
-        result.groupId,
-        trimmedDisplayName,
-      );
+      saveDisplayName(result.groupId, trimmedDisplayName);
+      rememberGroup(result, result.accessToken);
 
       navigate(
         `/groups/${result.groupId}#token=${encodeURIComponent(
@@ -63,116 +64,128 @@ function CreateGroupPage() {
   };
 
   return (
-    <main className="create-page">
-      <div className="create-shell">
-        <section className="create-intro">
-          <Brand />
+    <main
+      className={`create-page ${recentGroups.length ? "returning-page" : ""}`}
+    >
+      {recentGroups.length > 0 && (
+        <section className="recent-shell">
+          <header className="recent-header">
+            <Brand />
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => setShowCreate((value) => !value)}
+            >
+              <Icon name={showCreate ? "close" : "plus"} />
+              {showCreate ? "閉じる" : "グループを作る"}
+            </button>
+          </header>
+          <h1>グループ</h1>
 
-          <div className="create-copy">
-            <h1>
-              それ、しよう！を
-              <br />
-              みんなのリストに。
-            </h1>
-          </div>
-
-          <ul className="create-benefits">
-            <li>アカウント登録なし</li>
-            <li>共有URLを送るだけ</li>
+          <ul className="recent-list">
+            {recentGroups.map((group) => (
+              <li key={group.groupId}>
+                <Link to={recentGroupUrl(group)}>
+                  <span>{group.groupName}</span>
+                  <Icon name="arrow-right" />
+                </Link>
+                <button
+                  type="button"
+                  className="icon-button recent-forget"
+                  aria-label={`${group.groupName}をこの端末の履歴から外す`}
+                  title="この端末の履歴から外す"
+                  onClick={() => {
+                    forgetGroup(group.groupId);
+                    const remaining = getRecentGroups();
+                    setRecentGroups(remaining);
+                    if (!remaining.length) setShowCreate(true);
+                  }}
+                >
+                  <Icon name="close" size={17} />
+                </button>
+              </li>
+            ))}
           </ul>
         </section>
+      )}
+      {showCreate && (
+        <div className="create-shell">
+          <section className="create-intro">
+            <Brand />
+          </section>
 
-        <section
-          className="create-panel"
-          aria-labelledby="create-heading"
-        >
-          <div className="panel-heading">
-            <h2 id="create-heading">
-              新しいグループを作る
-            </h2>
-          </div>
+          <section className="create-panel" aria-labelledby="create-heading">
+            <div className="panel-heading">
+              <h2 id="create-heading">新しいグループを作る</h2>
+            </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="create-form"
-          >
-            <label className="field">
-              <span>グループ名</span>
-              <span className="input-edge">
-                <input
-                  value={groupName}
-                  onChange={(event) =>
-                    setGroupName(event.target.value)
-                  }
-                  placeholder="例：夏休みにやりたいこと"
-                  maxLength={50}
-                  autoComplete="off"
-                />
-              </span>
-            </label>
+            <form onSubmit={handleSubmit} className="create-form">
+              <label className="field">
+                <span>グループ名</span>
+                <span className="input-edge">
+                  <input
+                    value={groupName}
+                    onChange={(event) => setGroupName(event.target.value)}
+                    placeholder="例：夏休みにやりたいこと"
+                    maxLength={50}
+                    autoComplete="off"
+                  />
+                </span>
+              </label>
 
-            <label className="field">
-              <span>あなたの表示名</span>
-              <span className="input-edge">
-                <input
-                  value={displayName}
-                  onChange={(event) =>
-                    setDisplayName(event.target.value)
-                  }
-                  placeholder="例：たけし"
-                  maxLength={30}
-                  autoComplete="nickname"
-                />
-              </span>
-            </label>
+              <label className="field">
+                <span>あなたの表示名</span>
+                <span className="input-edge">
+                  <input
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder="例：たけし"
+                    maxLength={30}
+                    autoComplete="nickname"
+                  />
+                </span>
+              </label>
 
-            {error && (
-              <p className="form-error" role="alert">
-                {error}
+              {error && (
+                <p className="form-error" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="primary-button create-submit"
+                disabled={loading}
+              >
+                <span>{loading ? "作成しています…" : "グループを作成"}</span>
+                {!loading && <Icon name="arrow-right" />}
+              </button>
+
+              <p className="legal-consent">
+                作成すると、
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="利用規約（新しいタブで開く）"
+                >
+                  利用規約
+                </Link>
+                と
+                <Link
+                  to="/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="プライバシーポリシー（新しいタブで開く）"
+                >
+                  プライバシーポリシー
+                </Link>
+                に同意したものとみなします。
               </p>
-            )}
-
-            <button
-              type="submit"
-              className="primary-button create-submit"
-              disabled={loading}
-            >
-              <span>
-                {loading
-                  ? "作成しています…"
-                  : "グループを作成"}
-              </span>
-              {!loading && <Icon name="arrow-right" />}
-            </button>
-
-            <p className="legal-consent">
-              作成すると、
-              <Link
-                to="/terms"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="利用規約（新しいタブで開く）"
-              >
-                利用規約
-              </Link>
-              と
-              <Link
-                to="/privacy"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="プライバシーポリシー（新しいタブで開く）"
-              >
-                プライバシーポリシー
-              </Link>
-              に同意したものとみなします。
-            </p>
-          </form>
-
-          <p className="privacy-note">
-            共有URLを知っている人は、リストの追加・編集ができます。
-          </p>
-        </section>
-      </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

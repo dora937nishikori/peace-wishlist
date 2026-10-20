@@ -14,6 +14,7 @@ export interface WishItemRepository {
 
   update(
     item: WishItem,
+    expectedUpdatedAt?: string,
   ): Promise<void>;
 
   delete(

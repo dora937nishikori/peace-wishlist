@@ -43,6 +43,12 @@
 - 登録者と最終更新者の表示
 - 作成日時の新しい順での一覧表示
 - 表示名のブラウザ保存
+- URLからのタイトル・写真の取得と、写真付きの一覧・詳細表示
+- 実行した項目を「思い出」へ移動し、日付と複数の写真を保存
+- 思い出の写真の拡大表示、削除、やりたいことへの差し戻し
+- 最近使ったグループへの再訪（同じブラウザで最大12件）
+
+写真は非公開のS3バケットへ保存し、グループへのアクセス確認後に署名付きURLで表示します。
 
 ## アーキテクチャ
 
@@ -56,6 +62,7 @@ flowchart LR
     Lambda[AWS Lambda]
     Groups[(Groups Table)]
     Items[(WishItems Table)]
+    Photos[Private S3 Photos Bucket]
 
     User -->|HTTPS| CF
     CF -->|Origin Access Control| S3
@@ -64,6 +71,8 @@ flowchart LR
     APIGW --> Lambda
     Lambda --> Groups
     Lambda --> Items
+    Lambda -->|Upload policy / signed URL| Photos
+    User -->|Signed upload / download| Photos
 ```
 
 Frontendの静的ファイルはS3へ配置し、CloudFront経由で配信しています。APIはAPI Gateway HTTP APIとLambdaで構成し、データはDynamoDBへ保存しています。インフラストラクチャはAWS CDKで定義しています。
@@ -144,7 +153,6 @@ CI/CD、OIDC、監視、初回セットアップの詳細は[デプロイと運�
 ## 今後の改善
 
 - 第2回以降のユーザーフィードバックを基にした改善
-- やりたいことへの画像添付
 - サーバー側の入力値制限と、不正・大量リクエストへの対策
 - グループ削除とアクセストークン再発行
 - DynamoDB TTLによる不要データの自動削除
@@ -156,6 +164,7 @@ CI/CD、OIDC、監視、初回セットアップの詳細は[デプロイと運�
 - [Backend設計](docs/backend-design.md) — API、アクセストークン、DynamoDB、コードの責務分離
 - [デプロイと運用](docs/deployment.md) — AWS CDK、CI/CD、OIDC、監視、初回セットアップ
 - [ローカル動作確認](docs/local-development.md) — AWSを使わないローカルAPIとFrontendの起動方法
+- [写真とリンク情報](docs/photos-and-memories.md) — S3保存、URL取得、制限、検証方法
 
 ## ローカル開発
 

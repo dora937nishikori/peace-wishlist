@@ -1,3 +1,4 @@
+import { S3PhotoStore, type PhotoStore } from "./photoStore";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
@@ -67,6 +68,7 @@ export function createDeleteWishItemHandler(
     GroupRepository,
   wishItemRepository:
     WishItemRepository,
+  photoStore: PhotoStore | undefined = process.env.PHOTOS_BUCKET_NAME ? new S3PhotoStore(process.env.PHOTOS_BUCKET_NAME) : undefined,
 ): Handler {
   return async (
     event: APIGatewayProxyEventV2,
@@ -202,6 +204,9 @@ export function createDeleteWishItemHandler(
       );
     }
 
+    if (photoStore) {
+      await Promise.all((item.photos ?? []).map((photo) => photoStore.delete(photo.key).catch(() => console.error("Photo cleanup failed"))));
+    }
     return {
       statusCode: 204,
     };

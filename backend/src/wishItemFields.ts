@@ -6,12 +6,14 @@ export type WishItemFieldsInput = {
   content: string;
   comment?: string;
   url?: string;
+  coverImageUrl?: string;
 };
 
 export type WishItemFields = {
   content: string;
   comment: string;
   url: string;
+  coverImageUrl: string;
 };
 
 function normalizeUrl(value: string): string {
@@ -73,6 +75,19 @@ export function normalizeWishItemFields(
   }
 
   const url = normalizeUrl(rawUrl);
+  let coverImageUrl = "";
+  if (input.coverImageUrl) {
+    if (typeof input.coverImageUrl !== "string" || input.coverImageUrl.length > 2048) {
+      throw new Error("写真のURLが正しくありません");
+    }
+    try {
+      const image = new URL(input.coverImageUrl);
+      if (image.protocol !== "https:" || image.username || image.password) throw new Error();
+      coverImageUrl = image.href;
+    } catch {
+      throw new Error("写真のURLが正しくありません");
+    }
+  }
 
   if (url.length > WISH_URL_MAX_LENGTH) {
     throw new Error(
@@ -84,5 +99,6 @@ export function normalizeWishItemFields(
     content,
     comment,
     url,
+    coverImageUrl,
   };
 }
