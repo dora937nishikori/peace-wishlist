@@ -86,7 +86,7 @@ export async function presentSummary(
   store?: PhotoStore,
 ): Promise<WishItemSummaryResponse> {
   const response = toWishItemSummaryResponse(item);
-  if (store && item.status === "memory" && item.photos?.[0]) {
+  if (store && item.photos?.[0]) {
     response.coverImageUrl = await store.url(item.photos[0].key);
   }
   return response;

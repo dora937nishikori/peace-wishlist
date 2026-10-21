@@ -297,7 +297,7 @@ export default function WishItemPage() {
     if (!files?.length || !groupId || !item || !token || !displayName) return;
     const selected = [...files];
     if (selected.length + item.photos.length > 50) {
-      setError("写真は1つの思い出につき50枚まで追加できます。");
+      setError("写真は1つの項目につき50枚まで追加できます。");
       return;
     }
     setBusy(true);
@@ -379,12 +379,11 @@ export default function WishItemPage() {
       </main>
     );
   const photos = item?.photos ?? [];
-  const cover =
-    isMemory && photos.length ? photos[0].url : fields.coverImageUrl;
+  const cover = photos.length ? photos[0].url : fields.coverImageUrl;
   const activePhoto = lightboxIndex !== null ? photos[lightboxIndex] : null;
 
   return (
-    <main className={`item-page ${isMemory ? "memory-page" : ""}`}>
+    <main className="item-page">
       <header className="group-topbar">
         <div className="group-topbar-inner item-topbar-inner">
           <Link className="back-button" to={listUrl}>
@@ -399,7 +398,9 @@ export default function WishItemPage() {
       <article className={`story-shell ${editing ? "story-editing" : ""}`}>
         {editing ? (
           <form className="story-editor" onSubmit={save}>
-            {isNew ? <h1 className="sr-only">やりたいことを追加</h1> : (
+            {isNew ? (
+              <h1 className="sr-only">やりたいことを追加</h1>
+            ) : (
               <div className="editor-heading">
                 <h1>内容を編集</h1>
                 <button
@@ -412,6 +413,21 @@ export default function WishItemPage() {
                 </button>
               </div>
             )}
+            <label className="field">
+              <span>タイトル</span>
+              <span className="input-edge">
+                <input
+                  value={fields.content}
+                  placeholder="例：海の見えるカフェに行く"
+                  maxLength={200}
+                  required
+                  disabled={busy}
+                  onChange={(event) =>
+                    setFields({ ...fields, content: event.target.value })
+                  }
+                />
+              </span>
+            </label>
             <label className="field">
               <span>
                 URL <span className="optional-label">任意</span>
@@ -482,21 +498,6 @@ export default function WishItemPage() {
               </div>
             )}
             <label className="field">
-              <span>やりたいこと</span>
-              <span className="input-edge">
-                <input
-                  value={fields.content}
-                  placeholder="例：海の見えるカフェに行く"
-                  maxLength={200}
-                  required
-                  disabled={busy}
-                  onChange={(event) =>
-                    setFields({ ...fields, content: event.target.value })
-                  }
-                />
-              </span>
-            </label>
-            <label className="field">
               <span>
                 コメント <span className="optional-label">任意</span>
               </span>
@@ -546,13 +547,6 @@ export default function WishItemPage() {
           <>
             <header className="story-heading">
               <div>
-                {isMemory && item?.completedAt && (
-                  <p className="memory-date">
-                    <time dateTime={item.completedAt}>
-                      {item.completedAt.replaceAll("-", ".")}
-                    </time>
-                  </p>
-                )}
                 <h1>{item?.content}</h1>
                 <p className="story-byline">
                   {group.groupName}
@@ -574,7 +568,7 @@ export default function WishItemPage() {
               </button>
             </header>
             {cover &&
-              (isMemory && photos.length ? (
+              (photos.length ? (
                 <button
                   className="story-cover-button"
                   onClick={() => setLightboxIndex(0)}
@@ -583,7 +577,7 @@ export default function WishItemPage() {
                   <PhotoImage
                     className="story-cover"
                     src={cover}
-                    alt={item?.content ?? "思い出の写真"}
+                    alt={item?.content ?? "写真"}
                     eager
                   />
                   <span className="cover-open">
@@ -618,11 +612,7 @@ export default function WishItemPage() {
               </div>
               <button
                 type="button"
-                className={
-                  isMemory
-                    ? "text-button return-to-wish"
-                    : "secondary-button complete-button"
-                }
+                className="primary-button complete-button"
                 onClick={() => void changeStatus()}
                 disabled={busy}
               >
@@ -639,94 +629,92 @@ export default function WishItemPage() {
                 {error}
               </p>
             )}
-            {isMemory && (
-              <section className="memory-album" aria-labelledby="album-title">
-                <div className="album-heading">
-                  <div>
-                    <h2 id="album-title">この日の写真</h2>
-                    <span>{photos.length} / 50枚</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={busy || photos.length >= 50}
-                    onClick={() => fileInput.current?.click()}
-                  >
-                    <Icon name="plus" />
-                    写真を追加
-                  </button>
+            <section className="memory-album" aria-labelledby="album-title">
+              <div className="album-heading">
+                <div>
+                  <h2 id="album-title">写真</h2>
+                  <span>{photos.length} / 50枚</span>
                 </div>
-                <input
-                  ref={fileInput}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                  multiple
-                  hidden
-                  aria-label="思い出の写真を選ぶ"
-                  onChange={(event) => void addPhotos(event.target.files)}
-                />
-                {uploadProgress && (
-                  <p className="upload-progress" role="status">
-                    {uploadProgress}
-                  </p>
-                )}
-                {photos.length ? (
-                  <div className="album-grid">
-                    {photos.map((photo, index) => (
-                      <figure key={photo.id} className="album-photo">
-                        <button
-                          className="album-open"
-                          type="button"
-                          onClick={() => setLightboxIndex(index)}
-                          aria-label={`写真${index + 1}を大きく表示`}
-                        >
-                          <PhotoImage
-                            src={photo.url}
-                            alt={`${item?.content}の写真${index + 1}`}
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          className="image-remove"
-                          onClick={() => setDeletePhotoId(photo.id)}
-                          aria-label={`写真${index + 1}を削除`}
-                          disabled={busy}
-                        >
-                          <Icon name="close" size={17} />
-                        </button>
-                      </figure>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="album-empty">
-                    <span>写真はまだありません</span>
-                  </div>
-                )}
-                {deletePhotoId && (
-                  <div className="photo-delete-confirm" role="alert">
-                    <p>この写真を削除しますか？元に戻せません。</p>
-                    <div className="inline-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={busy || photos.length >= 50}
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <Icon name="plus" />
+                  写真を追加
+                </button>
+              </div>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                multiple
+                hidden
+                aria-label="写真を選ぶ"
+                onChange={(event) => void addPhotos(event.target.files)}
+              />
+              {uploadProgress && (
+                <p className="upload-progress" role="status">
+                  {uploadProgress}
+                </p>
+              )}
+              {photos.length ? (
+                <div className="album-grid">
+                  {photos.map((photo, index) => (
+                    <figure key={photo.id} className="album-photo">
                       <button
+                        className="album-open"
                         type="button"
-                        className="text-button"
-                        onClick={() => setDeletePhotoId(null)}
-                        disabled={busy}
+                        onClick={() => setLightboxIndex(index)}
+                        aria-label={`写真${index + 1}を大きく表示`}
                       >
-                        やめる
+                        <PhotoImage
+                          src={photo.url}
+                          alt={`${item?.content}の写真${index + 1}`}
+                        />
                       </button>
                       <button
                         type="button"
-                        className="danger-button"
-                        onClick={() => void removePhoto()}
+                        className="image-remove photo-delete-button"
+                        onClick={() => setDeletePhotoId(photo.id)}
+                        aria-label={`写真${index + 1}を削除`}
                         disabled={busy}
                       >
-                        削除する
+                        <Icon name="close" size={17} />
                       </button>
-                    </div>
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                <div className="album-empty">
+                  <span>写真はまだありません</span>
+                </div>
+              )}
+              {deletePhotoId && (
+                <div className="photo-delete-confirm" role="alert">
+                  <p>この写真を削除しますか？元に戻せません。</p>
+                  <div className="inline-actions">
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setDeletePhotoId(null)}
+                      disabled={busy}
+                    >
+                      やめる
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button"
+                      onClick={() => void removePhoto()}
+                      disabled={busy}
+                    >
+                      削除する
+                    </button>
                   </div>
-                )}
-              </section>
-            )}
+                </div>
+              )}
+            </section>
             <footer className="story-footer">
               {confirmDelete ? (
                 <div className="item-delete-confirmation">
@@ -758,7 +746,7 @@ export default function WishItemPage() {
               ) : (
                 <button
                   type="button"
-                  className="text-button item-delete-button"
+                  className="text-button item-delete-button destructive-action"
                   onClick={() => setConfirmDelete(true)}
                   disabled={busy}
                 >

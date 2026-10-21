@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import type { Group } from "./createGroup";
 import type { WishItem } from "./createWishItem";
@@ -63,6 +64,27 @@ const items: WishItemRepository = {
 
 type StoredPhoto = { bytes: Buffer; type: string };
 const photoData = new Map<string, StoredPhoto>();
+// An explicit local fixture can preserve preview data across a developer restart.
+if (process.env.LOCAL_SEED_FILE) {
+  const seed = JSON.parse(
+    readFileSync(process.env.LOCAL_SEED_FILE, "utf8"),
+  ) as {
+    groups: Group[];
+    items: WishItem[];
+    photos: { key: string; bytes: string; type: string }[];
+  };
+  seed.groups.forEach((group) => groupData.set(group.groupId, group));
+  seed.items.forEach((item) =>
+    itemData.set(itemKey(item.groupId, item.itemId), item),
+  );
+  seed.photos.forEach((photo) =>
+    photoData.set(photo.key, {
+      bytes: Buffer.from(photo.bytes, "base64"),
+      type: photo.type,
+    }),
+  );
+}
+
 const uploads = new Map<
   string,
   { key: string; type: string; expires: number }

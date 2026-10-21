@@ -34,3 +34,5 @@ npm run dev:local
 - 通常の`npm run dev`は、これまでどおり`.env.local`で指定されたAPIへ接続します。
 
 ローカルAPIのポートを変更する場合は、Backend起動時に`LOCAL_API_PORT`を指定してください。その場合、Frontendの`vite.config.ts`にあるローカルAPI URLも同じポートへ変更します。
+
+開発中のプレビューデータを復元する場合は、`LOCAL_SEED_FILE`へローカルのJSONファイルを指定できます。形式は`groups`、`items`、`photos`の配列で、写真は`key`・`type`・Base64の`bytes`を持ちます。自動保存は行いません。

@@ -1918,3 +1918,66 @@ a:focus-visible {
   .recent-header { margin-bottom: 36px; }
   .create-page:not(.returning-page) { padding: 26px 20px 48px; }
 }
+
+/* Feedback from use: keep the list linear, and give each action a clear role. */
+.collection-heading { align-items: center; gap: 32px; margin-bottom: 32px; }
+.collection-heading h1 { flex: 1; min-width: 0; }
+.collection-add { margin: 0; min-width: 88px; }
+.collection-toolbar { display: block; margin-bottom: 0; }
+.collection-list { margin: 0; padding: 0; list-style: none; }
+.collection-list > li + li { border-top: 1px solid var(--line); }
+.collection-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 32px;
+  min-height: 150px;
+  padding: 26px 0;
+  border-radius: 0;
+}
+.collection-caption { padding: 0; min-width: 0; }
+.collection-caption h2 { font-size: 20px; line-height: 1.6; }
+.collection-caption p { margin-top: 10px; font-size: 12px; }
+.collection-photo { aspect-ratio: 3 / 1; width: 100%; border-radius: 12px; }
+.collection-entry:hover .collection-caption h2 { color: var(--accent); }
+.collection-entry:focus-visible { outline-offset: 6px; border-radius: 4px; }
+.primary-button {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.primary-button:hover:not(:disabled),
+.primary-button:active:not(:disabled) {
+  color: #fff;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.danger-button {
+  color: #fff;
+  background: #b42332;
+  border-color: #b42332;
+}
+.danger-button:hover:not(:disabled) {
+  color: #fff;
+  background: #941b28;
+  border-color: #941b28;
+}
+.photo-delete-button,
+.story-footer .destructive-action { color: #b42332; border-color: #e8b1b8; }
+.photo-delete-button:hover:not(:disabled),
+.story-footer .destructive-action:hover:not(:disabled) {
+  color: #941b28;
+  background: #fff1f3;
+  border-color: #b42332;
+}
+@media (max-width: 600px) {
+  .collection-heading { flex-wrap: wrap; gap: 20px; margin-bottom: 28px; }
+  .collection-heading h1 { flex-basis: 100%; }
+  .collection-add { margin-left: auto; min-width: 88px; font-size: 14px; }
+  .collection-entry { gap: 16px; min-height: 112px; padding: 20px 0; }
+  .collection-caption h2 { font-size: 15px; line-height: 1.65; }
+  .collection-caption p { margin-top: 8px; font-size: 11px; }
+  .collection-photo { aspect-ratio: 3 / 1; border-radius: 8px; }
+  .collection-photo .photo-count { bottom: 5px; right: 5px; padding: 2px 5px; font-size: 10px; }
+  .collection-photo .photo-count svg { width: 12px; height: 12px; }
+}

@@ -202,6 +202,30 @@ describe("memories", () => {
 });
 
 describe("private photo uploads", () => {
+  it("allows photos on wishes and keeps the same cover after completion", async () => {
+    const state = setup();
+    await state.repository.update({ ...state.item, status: "wish" });
+    const handler = createPhotosHandler(groups, state.repository, state.store);
+    const upload = await handler(
+      event("/photos/upload", { contentType: "image/jpeg", size: 500 }),
+    );
+    expect(upload.statusCode).toBe(200);
+    const result = await handler(
+      event("/photos", { key, displayName: "あおい" }),
+    );
+    expect(result.statusCode).toBe(201);
+    expect(JSON.parse(result.body!).status).toBe("wish");
+    expect(JSON.parse(result.body!).photos).toHaveLength(1);
+    const before = await presentSummary(state.item, state.store);
+    const after = await presentSummary(
+      { ...state.item, status: "memory" },
+      state.store,
+    );
+    expect(before.coverImageUrl).toContain("signed=true");
+    expect(after.coverImageUrl).toBe(before.coverImageUrl);
+    expect(after.photoCount).toBe(before.photoCount);
+  });
+
   it("checks actual image bytes and group ownership", () => {
     expect(() =>
       validatePhoto(Buffer.from("<svg onload=alert(1)>"), "image/jpeg"),

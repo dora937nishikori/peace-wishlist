@@ -72,7 +72,7 @@ function CreateGroupPage() {
           <header className="recent-header">
             <Brand />
             <button
-              className="text-button"
+              className={showCreate ? "text-button" : "primary-button"}
               type="button"
               onClick={() => setShowCreate((value) => !value)}
             >

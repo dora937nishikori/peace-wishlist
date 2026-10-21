@@ -43,17 +43,12 @@ export function createPhotosHandler(
       return json(200, await presentItem(updated, store));
     }
 
-    if (item.status !== "memory")
-      throw new HttpError(
-        400,
-        "「思い出に残す」を選んでから写真を追加してください",
-      );
     const body = readBody(event);
     if (event.rawPath.endsWith("/photos/upload")) {
       if (photos.length >= MAX_PHOTOS)
         throw new HttpError(
           400,
-          `写真は1つの思い出につき${MAX_PHOTOS}枚まで追加できます`,
+          `写真は1つの項目につき${MAX_PHOTOS}枚まで追加できます`,
         );
 
       if (
@@ -90,7 +85,7 @@ export function createPhotosHandler(
     if (photos.length >= MAX_PHOTOS)
       throw new HttpError(
         400,
-        `写真は1つの思い出につき${MAX_PHOTOS}枚まで追加できます`,
+        `写真は1つの項目につき${MAX_PHOTOS}枚まで追加できます`,
       );
     let key: string;
     try {

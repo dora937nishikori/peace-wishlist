@@ -310,6 +310,16 @@ function GroupPage() {
       <div className="group-shell">
         <section className="collection-heading">
           <h1>{group.groupName}</h1>
+          {view === "wish" && (
+            <button
+              type="button"
+              className="primary-button collection-add"
+              onClick={newItem}
+            >
+              <Icon name="plus" />
+              追加
+            </button>
+          )}
         </section>
         <div className="collection-toolbar">
           <nav className="collection-tabs" aria-label="リストの切り替え">
@@ -326,16 +336,6 @@ function GroupPage() {
               思い出 <span>{items.length - wishCount}</span>
             </Link>
           </nav>
-          <button
-            type="button"
-            className="secondary-button collection-add"
-            onClick={newItem}
-            style={view === "memory" ? { visibility: "hidden" } : undefined}
-            tabIndex={view === "memory" ? -1 : undefined}
-          >
-            <Icon name="plus" />
-            追加
-          </button>
         </div>
         <section
           className="collection"
@@ -350,9 +350,7 @@ function GroupPage() {
               </p>
             </div>
           ) : (
-            <ul
-              className={`collection-grid ${view === "memory" ? "memory-grid" : ""}`}
-            >
+            <ul className="collection-list">
               {visibleItems.map((item, index) => (
                 <li key={item.itemId}>
                   <button
@@ -365,37 +363,25 @@ function GroupPage() {
                     }
                     aria-label={`${item.content}の詳細を開く`}
                   >
-                    {item.coverImageUrl ? (
+                    <div className="collection-caption">
+                      <h2>{item.content}</h2>
+                      <p>{item.createdByDisplayName}が追加</p>
+                    </div>
+                    {item.coverImageUrl && (
                       <div className="collection-photo">
                         <PhotoImage
                           src={item.coverImageUrl}
                           alt=""
                           eager={index < 3}
                         />
-                        {view === "memory" && item.photoCount > 0 && (
+                        {item.photoCount > 0 && (
                           <span className="photo-count">
                             <Icon name="photo" size={14} />
                             {item.photoCount}
                           </span>
                         )}
                       </div>
-                    ) : (
-                      <div className="collection-note">
-                        <span>{item.content}</span>
-                        <Icon
-                          name={view === "memory" ? "check" : "arrow-right"}
-                          size={22}
-                        />
-                      </div>
                     )}
-                    <div className="collection-caption">
-                      {item.coverImageUrl && <h2>{item.content}</h2>}
-                      <p>
-                        {view === "memory" && item.completedAt
-                          ? item.completedAt.replaceAll("-", ".")
-                          : `${item.createdByDisplayName}が追加`}
-                      </p>
-                    </div>
                   </button>
                 </li>
               ))}
