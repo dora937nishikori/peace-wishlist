@@ -1899,8 +1899,8 @@ a:focus-visible {
 .recent-shell h1 { margin-bottom: 32px; }
 .recent-header { margin-bottom: 48px; }
 .create-page:not(.returning-page) { display: block; padding: 40px 24px 72px; }
-.create-page:not(.returning-page) .create-shell { display: block; max-width: 520px; margin: 0 auto; }
-.create-page:not(.returning-page) .create-intro { margin-bottom: 40px; }
+.create-page:not(.returning-page) .create-shell { display: block; max-width: 520px; min-height: 0; margin: 0 auto; }
+.create-page:not(.returning-page) .create-intro { min-height: 0; margin-bottom: 40px; padding: 0; }
 .create-page:not(.returning-page) .create-panel { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
 .create-panel::before,
 .join-panel::before,

@@ -206,7 +206,7 @@ Wish and memory details share the same cover, comments, state actions and photo 
 
 ### Creation and reading surfaces
 
-New and edit forms start with title, then optional URL and comment. New items retain a screen-reader-only heading. URL preview can populate a name and photo while manual entry remains available. Existing items open in read mode with the item name as the heading and a separate edit action. Initial group creation is a plain form; the returning view starts with recent groups. Legal documents keep semantic headings, quiet separators, and direct navigation back.
+New and edit forms start with title, then optional URL and comment. New items retain a screen-reader-only heading. URL preview can populate a name and photo while manual entry remains available. Existing items open in read mode with the item name as the heading and a separate edit action. Initial group creation is a plain form; its shell and brand introduction size to their content without reserving an empty marketing-height region. The returning view starts with recent groups. Legal documents keep semantic headings, quiet separators, and direct navigation back.
 
 ## Do's and Don'ts
 
