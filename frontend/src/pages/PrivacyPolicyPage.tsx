@@ -1,3 +1,4 @@
+import { APP_NAME } from "../brand";
 import { LegalPageLayout } from "../components/LegalPageLayout";
 import { CONTACT_EMAIL, LEGAL_EFFECTIVE_DATE, OPERATOR_NAME } from "../legal";
 
@@ -9,8 +10,8 @@ function PrivacyPolicyPage() {
     >
       <p className="legal-lead">
         {OPERATOR_NAME}
-        （以下「運営者」といいます）は、「peace
-        wishlist」（以下「本サービス」といいます）で取り扱う利用者の情報を、次の方針に基づいて適切に管理します。
+        （以下「運営者」といいます）は、「{APP_NAME}
+        」（以下「本サービス」といいます）で取り扱う利用者の情報を、次の方針に基づいて適切に管理します。
       </p>
 
       <section>

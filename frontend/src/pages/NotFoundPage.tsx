@@ -2,13 +2,14 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 
 import { Brand } from "../components/Brand";
+import { APP_NAME } from "../brand";
 
 function NotFoundPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = "ページが見つかりません | peace wishlist";
+    document.title = `ページが見つかりません | ${APP_NAME}`;
 
     return () => {
       document.title = previousTitle;

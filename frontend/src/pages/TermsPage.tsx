@@ -1,20 +1,14 @@
+import { APP_NAME } from "../brand";
 import { LegalPageLayout } from "../components/LegalPageLayout";
-import {
-  CONTACT_EMAIL,
-  LEGAL_EFFECTIVE_DATE,
-  OPERATOR_NAME,
-} from "../legal";
+import { CONTACT_EMAIL, LEGAL_EFFECTIVE_DATE, OPERATOR_NAME } from "../legal";
 
 function TermsPage() {
   return (
-    <LegalPageLayout
-      title="利用規約"
-      effectiveDate={LEGAL_EFFECTIVE_DATE}
-    >
+    <LegalPageLayout title="利用規約" effectiveDate={LEGAL_EFFECTIVE_DATE}>
       <p className="legal-lead">
         この利用規約は、{OPERATOR_NAME}
-        （以下「運営者」といいます）が提供する「peace
-        wishlist」（以下「本サービス」といいます）の利用条件を定めるものです。本サービスを利用した時点で、本規約に同意したものとみなします。
+        （以下「運営者」といいます）が提供する「{APP_NAME}
+        」（以下「本サービス」といいます）の利用条件を定めるものです。本サービスを利用した時点で、本規約に同意したものとみなします。
       </p>
 
       <section>
@@ -47,12 +41,8 @@ function TermsPage() {
         <p>本サービスでは、次の行為を禁止します。</p>
         <ul>
           <li>法令または公序良俗に反する行為</li>
-          <li>
-            他人の著作権、プライバシー、名誉その他の権利を侵害する行為
-          </li>
-          <li>
-            本人の許可なく個人情報や秘密情報を投稿する行為
-          </li>
+          <li>他人の著作権、プライバシー、名誉その他の権利を侵害する行為</li>
+          <li>本人の許可なく個人情報や秘密情報を投稿する行為</li>
           <li>
             不正なサイト、マルウェアその他の危険な内容へ誘導するURLを登録する行為
           </li>

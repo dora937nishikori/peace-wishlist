@@ -29,7 +29,7 @@ export class InfraStack extends cdk.Stack {
     }
 
     const alarmTopic = new sns.Topic(this, "AlarmTopic", {
-      displayName: "Peace Wishlist Alarm",
+      displayName: "Soreshiyo Alarm",
     });
 
     alarmTopic.addSubscription(new subscriptions.EmailSubscription(alarmEmail));
@@ -494,7 +494,7 @@ export class InfraStack extends cdk.Stack {
      * API Gateway HTTP API
      */
     const httpApi = new apigatewayv2.HttpApi(this, "WishlistApi", {
-      apiName: "peace-wishlist-api",
+      apiName: "soreshiyo-api",
 
       corsPreflight: {
         allowOrigins: [

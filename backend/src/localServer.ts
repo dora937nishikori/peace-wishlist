@@ -301,7 +301,7 @@ const server = createServer((request, response) => {
 });
 server.listen(port, "127.0.0.1", () =>
   console.log(
-    `Peace Wishlist local API: ${origin}\n写真を含むデータはプロセス終了時に消去されます。`,
+    `それしよ local API: ${origin}\n写真を含むデータはプロセス終了時に消去されます。`,
   ),
 );
 process.on("SIGINT", () => server.close(() => process.exit(0)));

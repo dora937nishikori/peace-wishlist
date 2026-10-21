@@ -327,13 +327,15 @@ function GroupPage() {
               to={`${location.pathname}${location.hash}`}
               aria-current={view === "wish" ? "page" : undefined}
             >
-              やりたいこと <span>{wishCount}</span>
+              <span className="tab-label">やりたいこと</span>
+              <span className="tab-count">{wishCount}</span>
             </Link>
             <Link
               to={`${location.pathname}?view=memories${location.hash}`}
               aria-current={view === "memory" ? "page" : undefined}
             >
-              思い出 <span>{items.length - wishCount}</span>
+              <span className="tab-label">思い出</span>
+              <span className="tab-count">{items.length - wishCount}</span>
             </Link>
           </nav>
         </div>

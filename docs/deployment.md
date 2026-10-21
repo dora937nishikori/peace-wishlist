@@ -1,8 +1,10 @@
 # デプロイと運用
 
-このドキュメントでは、Peace WishlistのAWS CDKスタック、GitHub ActionsによるCI/CD、OIDC認証、監視、初回セットアップについて説明します。
+このドキュメントでは、それしよのAWS CDKスタック、GitHub ActionsによるCI/CD、OIDC認証、監視、初回セットアップについて説明します。
 
 [READMEへ戻る](../README.md)
+
+アプリの表示名は「それしよ」です。既存環境との互換性のため、リポジトリ名やCDKスタック名には従来の識別子を使用しています。
 
 ## AWS構成
 

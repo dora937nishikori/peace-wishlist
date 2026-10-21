@@ -1,5 +1,5 @@
 ---
-name: Peace Wishlist
+name: それしよ
 description: 写真と簡潔な操作で、やりたいことと思い出を共有するClear Sky UI
 colors:
   canvas: "#f5faff"
@@ -121,13 +121,13 @@ components:
     height: "44px"
 ---
 
-# Design System: Peace Wishlist
+# Design System: それしよ
 
 ## Overview
 
 **Creative North Star: "Clear Sky UI"**
 
-Peace Wishlist keeps the established Clear Sky UI: pale blue fields, blue primary actions, white secondary controls, deep blue-gray text, and the native Japanese sans stack. Friends and family use it mainly on phones; labels and placement carry the operation, with supporting copy reserved for consequences, permissions, and recovery.
+それしよ keeps the established Clear Sky UI: pale blue fields, blue primary actions, white secondary controls, deep blue-gray text, and the native Japanese sans stack. Friends and family use it mainly on phones; labels and placement carry the operation, with supporting copy reserved for consequences, permissions, and recovery.
 
 Collections use a vertical list: text occupies the left half and a wide photograph occupies the right half. The interface remains quiet around user content. User uploads and URL previews supply the imagery; decorative stock or generated photographs are not part of the product.
 
@@ -168,7 +168,7 @@ The hierarchy moves from fluid user-content headings to compact captions and met
 
 Use centered content widths with generous outer gutters. Collections have a 1144px outer maximum and 32px desktop gutters; detail has a 1000px maximum; editors narrow to 740px. Legal and recent-group content use 820px. At 820px, collection and detail gutters reduce to 24px; at 600px they reduce to 20px; at 360px they reduce to 16px. The minimum supported page width is 320px.
 
-Wishlist and memories use the same vertical list. Each row has two equal columns: title and added-by text on the left and an optional 3:1 thumbnail on the right. The column gap is 32px on desktop and 16px on mobile; without a photo, the right half stays blank. Album thumbnails use three columns, then two at 600px. Detail covers use 16:10 on desktop and 4:3 on mobile. Keep the caption outside the image boundary.
+Wishlist and memories use the same vertical list. Each row has two equal columns: title and added-by text on the left and an optional 5:2 thumbnail on the right. The column gap is 32px on desktop and 16px on mobile; without a photo, the right half stays blank. Album thumbnails use three columns, then two at 600px. Detail covers use 16:10 on desktop and 4:3 on mobile. Keep the caption outside the image boundary.
 
 On mobile, detail titles occupy their own full-width row and the edit action sits below, right aligned. Long content wraps rather than squeezing the title beside its action. Legal content remains one continuous reading plane with a 70ch measure; detail comments use up to 65ch. The shared footer stacks on mobile.
 
@@ -196,7 +196,7 @@ White fields sit inside a one-pixel blue-gray wrapper. Focus changes the wrapper
 
 ### Navigation
 
-Collections use two text tabs with counts, a dark underline for the current route, and a shared bottom divider. The wishlist has one primary add action beside the group heading, on its own row below the heading on mobile. Tabs occupy a separate row. The sticky top bar is opaque on collection and detail routes. Recent groups are divided text rows with a separate removal control.
+Collections use two text tabs with counts, a dark underline for the current route, and a shared bottom divider. Labels and counts share the same font size and 1.5 line-height, with their centers aligned; counts use tabular numerals. The wishlist has one primary add action beside the group heading, on its own row below the heading on mobile. Tabs occupy a separate row. The sticky top bar is opaque on collection and detail routes. Recent groups are divided text rows with a separate removal control.
 
 ### Photo lists and albums
 

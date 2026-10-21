@@ -81,7 +81,7 @@ async function requestPage(
         signal,
         headers: {
           host: url.host,
-          "user-agent": "PeaceWishlist/1.0 (+link preview)",
+          "user-agent": "Soreshiyo/1.0 (+link preview)",
           accept: "text/html,application/xhtml+xml",
           "accept-encoding": "identity",
         },

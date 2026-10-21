@@ -1672,7 +1672,8 @@ a:focus-visible {
 .collection-tabs a { position: relative; display: inline-flex; align-items: center; gap: 9px; min-height: 52px; padding: 0 0 16px; color: var(--ink-soft); font-size: 15px; font-weight: 500; text-decoration: none; }
 .collection-tabs a[aria-current] { color: var(--ink); font-weight: 700; }
 .collection-tabs a[aria-current]::after { position: absolute; content: ""; height: 2px; background: var(--ink); bottom: -1px; right: 0; left: 0; }
-.collection-tabs span { color: var(--ink-faint); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.collection-tabs .tab-label { color: inherit; font: inherit; line-height: 1.5; }
+.collection-tabs .tab-count { display: inline-flex; align-items: center; justify-content: center; align-self: center; color: var(--ink-faint); font-size: inherit; font-weight: 500; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .collection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 26px; row-gap: 36px; margin: 0; padding: 0; list-style: none; }
 .collection-grid > li { min-width: 0; }
 .collection-entry { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: var(--ink); text-align: left; border-radius: 14px; }
@@ -1938,7 +1939,7 @@ a:focus-visible {
 .collection-caption { padding: 0; min-width: 0; }
 .collection-caption h2 { font-size: 20px; line-height: 1.6; }
 .collection-caption p { margin-top: 10px; font-size: 12px; }
-.collection-photo { aspect-ratio: 3 / 1; width: 100%; border-radius: 12px; }
+.collection-photo { aspect-ratio: 5 / 2; width: 100%; border-radius: 12px; }
 .collection-entry:hover .collection-caption h2 { color: var(--accent); }
 .collection-entry:focus-visible { outline-offset: 6px; border-radius: 4px; }
 .primary-button {
@@ -1977,7 +1978,7 @@ a:focus-visible {
   .collection-entry { gap: 16px; min-height: 112px; padding: 20px 0; }
   .collection-caption h2 { font-size: 15px; line-height: 1.65; }
   .collection-caption p { margin-top: 8px; font-size: 11px; }
-  .collection-photo { aspect-ratio: 3 / 1; border-radius: 8px; }
+  .collection-photo { aspect-ratio: 5 / 2; border-radius: 8px; }
   .collection-photo .photo-count { bottom: 5px; right: 5px; padding: 2px 5px; font-size: 10px; }
   .collection-photo .photo-count svg { width: 12px; height: 12px; }
 }

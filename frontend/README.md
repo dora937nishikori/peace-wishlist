@@ -1,32 +1,23 @@
-# React + TypeScript + Vite
+# それしよ フロントエンド
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+友人・家族・恋人と、やりたいことや思い出を共有するWebアプリのフロントエンドです。React、TypeScript、Viteを使用しています。
 
-Currently, two official plugins are available:
+## ローカル起動
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+`backend`でローカルAPIを起動したうえで、このディレクトリで実行します。
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm ci
+npm run dev:local
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+ブラウザで`http://localhost:5173`を開きます。起動手順の詳細は[ローカル動作確認](../docs/local-development.md)を参照してください。
+
+## 確認
+
+```bash
+npm run build
+npm run lint
+```
+
+機能・構成・デプロイ方法は[プロジェクトのREADME](../README.md)を参照してください。
